@@ -13,10 +13,10 @@ namespace FinanceAPI
                 .AddServices()
                 .AddOpenApi()
                 .AddSwaggerGen()
+                .AddOpenApi()
                 .AddControllers();
 
             var app = builder.Build();
-
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -24,6 +24,7 @@ namespace FinanceAPI
             }
 
             app.UseHttpsRedirection();
+            app.MapOpenApi();
 
             app.UseAuthorization();
 

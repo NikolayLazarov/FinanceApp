@@ -5,5 +5,6 @@ namespace Finance.Data.Interfaces
 {
     public interface IExpensesRepository : IRepository<Expense>
     {
+        public Task<Expense> GetByIdAsync(int id);
     }
 }

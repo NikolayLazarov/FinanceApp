@@ -1,12 +1,13 @@
 ﻿using API.Data.Interfaces;
 using Finance.Data.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Finance.Data.Repository
 {
     public class Repository<T> : IRepository<T> where T : class
     {
         private readonly ApplicationDbContext dbContext;
-
+        internal DbSet<T> dbSet;
         public Repository(ApplicationDbContext dbContext)
         {
             this.dbContext = dbContext;
@@ -28,7 +29,7 @@ namespace Finance.Data.Repository
 
         public IQueryable<T> GetAll()
         {
-            return dbContext.Set<T>().AsQueryable();
+            return dbSet.AsQueryable();
         }
 
         public async Task SaveChangesAsync()
@@ -38,7 +39,7 @@ namespace Finance.Data.Repository
 
         public void Update(T entity)
         {
-            dbContext.Set<T>();
+            dbSet.Update(entity);
         }
     }
 }

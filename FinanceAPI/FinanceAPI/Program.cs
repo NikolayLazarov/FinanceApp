@@ -24,11 +24,11 @@ namespace FinanceAPI
                 app.UseSwaggerUI();
             }
 
+            app.UseRouting();
             app.UseHttpsRedirection();
             app.MapOpenApi();
-
+            app.UseExceptionHandler();
             app.UseAuthorization();
-
             app.MapControllers();
 
             app.Run();

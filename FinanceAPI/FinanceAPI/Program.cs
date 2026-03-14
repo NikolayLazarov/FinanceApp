@@ -9,8 +9,9 @@ namespace FinanceAPI
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services
-                .InjectDBContext(builder.Configuration)
                 .AddServices()
+                .InjectDBContext(builder.Configuration)
+                .AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies())
                 .AddOpenApi()
                 .AddSwaggerGen()
                 .AddOpenApi()

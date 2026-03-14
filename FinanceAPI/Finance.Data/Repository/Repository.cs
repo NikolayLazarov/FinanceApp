@@ -11,6 +11,7 @@ namespace Finance.Data.Repository
         public Repository(ApplicationDbContext dbContext)
         {
             this.dbContext = dbContext;
+            dbSet = dbContext.Set<T>();
         }
 
         public void Add(T entity)

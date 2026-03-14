@@ -39,7 +39,17 @@ namespace FinanceAPI.DependencyInjection
         {
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen();
+
             return services;
+        }
+        public static WebApplication AddSwaggerInDev(this WebApplication app)
+        {
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+            return app;
         }
     }
 }

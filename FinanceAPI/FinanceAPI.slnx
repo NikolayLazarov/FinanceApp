@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yml" />
+  </Folder>
   <Project Path="Finance.Data/Finance.Data.csproj" />
   <Project Path="Finance.Models/Finance.Models.csproj" />
   <Project Path="FinanceAPI/FinanceAPI.csproj" />

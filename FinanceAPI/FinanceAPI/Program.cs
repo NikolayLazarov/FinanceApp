@@ -15,9 +15,18 @@ namespace FinanceAPI
                 .AddOpenApi()
                 .AddSwaggerGen()
                 .AddOpenApi()
+                .AddCustomProblemDetails()
+                .AddExceptionHandler<GlobalExceptionHandler>()
                 .AddControllers();
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
+            }
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -25,7 +34,7 @@ namespace FinanceAPI
             }
 
             app.UseRouting();
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.MapOpenApi();
             app.UseExceptionHandler();
             app.UseAuthorization();

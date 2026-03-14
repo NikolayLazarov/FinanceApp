@@ -65,7 +65,7 @@ namespace FinanceAPI.Controllers
                 return BadRequest(problemDetails);
             }
 
-            expense.DeletionTime = DateTime.Now;
+            expense.DeletionTime = DateTime.UtcNow;
             //expense.DeleterUserId = userId;
 
             _expensesRepository.Delete(expense);
@@ -77,7 +77,7 @@ namespace FinanceAPI.Controllers
         private async Task<IActionResult> CreateExpense(CreateOrUpdateExpenseInput input)
         {
             var newExpense = _mapper.Map<Expense>(input);
-            newExpense.CreationDate = DateTime.Now;
+            newExpense.CreationDate = DateTime.UtcNow;
             //newExpense.CreatorUserId = userId;
 
             _expensesRepository.Add(newExpense);
@@ -108,7 +108,7 @@ namespace FinanceAPI.Controllers
 
             var newExpense = _mapper.Map(input, expense);
 
-            newExpense.LastModified = DateTime.Now;
+            newExpense.LastModified = DateTime.UtcNow;
             _expensesRepository.Update(newExpense);
             await _expensesRepository.SaveChangesAsync();
 

@@ -2,6 +2,7 @@
 using Finance.Data.Interfaces;
 using Finance.Models.DTOs;
 using Finance.Models.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -10,6 +11,7 @@ namespace FinanceAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Authorize(Policy = "UserOnly")]
     public class ExpensesController : ControllerBase
     {
         private readonly IExpensesRepository _expensesRepository;

@@ -8,6 +8,7 @@ namespace FinanceAPI.DependencyInjection
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
             services.AddScoped<IExpensesRepository, ExpensesRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
             return services;
         }
 

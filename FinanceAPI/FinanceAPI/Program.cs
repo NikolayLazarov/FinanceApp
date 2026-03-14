@@ -1,4 +1,5 @@
 using FinanceAPI.DependencyInjection;
+using FinanceAPI.Exceptions;
 
 namespace FinanceAPI
 {
@@ -10,22 +11,19 @@ namespace FinanceAPI
 
             builder.Services
                 .AddServices()
+                .AddIdentity()
+                .AddJWTAuthentication(builder.Configuration)
+                .AddAuthorizationPolicies()
+                .ConfigureIdentity()
                 .InjectDBContext(builder.Configuration)
                 .AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies())
-                .AddOpenApi()
-                .AddSwaggerGen()
-                .AddOpenApi()
+                .AddSwagger()
                 .AddCustomProblemDetails()
                 .AddExceptionHandler<GlobalExceptionHandler>()
+                .AddSwaggerDocumentation()
                 .AddControllers();
 
             var app = builder.Build();
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
-            }
 
             if (app.Environment.IsDevelopment())
             {
@@ -35,8 +33,8 @@ namespace FinanceAPI
 
             app.UseRouting();
             //app.UseHttpsRedirection();
-            app.MapOpenApi();
             app.UseExceptionHandler();
+            app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
 

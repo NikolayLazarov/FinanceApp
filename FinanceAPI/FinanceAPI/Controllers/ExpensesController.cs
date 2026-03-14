@@ -15,7 +15,8 @@ namespace FinanceAPI.Controllers
         private readonly IExpensesRepository _expensesRepository;
         private readonly IMapper _mapper;
 
-        public ExpensesController(IExpensesRepository expenseRepository,
+        public ExpensesController(
+            IExpensesRepository expenseRepository,
             IMapper mapper)
         {
             _expensesRepository = expenseRepository;
@@ -62,6 +63,9 @@ namespace FinanceAPI.Controllers
                 return BadRequest(problemDetails);
             }
 
+            expense.DeletionTime = DateTime.Now;
+            //expense.DeleterUserId = userId;
+
             _expensesRepository.Delete(expense);
             await _expensesRepository.SaveChangesAsync();
 
@@ -71,6 +75,8 @@ namespace FinanceAPI.Controllers
         private async Task<IActionResult> CreateExpense(CreateOrUpdateExpenseInput input)
         {
             var newExpense = _mapper.Map<Expense>(input);
+            newExpense.CreationDate = DateTime.Now;
+            //newExpense.CreatorUserId = userId;
 
             _expensesRepository.Add(newExpense);
             await _expensesRepository.SaveChangesAsync();
@@ -100,8 +106,10 @@ namespace FinanceAPI.Controllers
 
             var newExpense = _mapper.Map(input, expense);
 
+            newExpense.LastModified = DateTime.Now;
             _expensesRepository.Update(newExpense);
             await _expensesRepository.SaveChangesAsync();
+
             return Ok(new { message = "Expense was updated successfully!" });
         }
     }

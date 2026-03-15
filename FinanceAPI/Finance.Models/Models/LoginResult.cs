@@ -1,25 +1,20 @@
 ﻿using Finance.Models.Enums;
-using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
 
 namespace Finance.Models.Models
 {
-    public class ApplicationUser : IdentityUser
+    public class LoginResult
     {
-        [Required]
+        public LoginResult()
+        {
+
+        }
+        public string Token { get; set; }
         public string FirstName { get; set; }
-
-        [Required]
         public string LastName { get; set; }
-
-        [Required]
+        public string Email { get; set; }
         public int Age { get; set; }
-
-        [Required]
         public UserGender Gender { get; set; }
-
         public decimal DailyAllowance { get; set; } = 0m;
         public decimal Savings { get; set; } = 0m;
-        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     }
 }

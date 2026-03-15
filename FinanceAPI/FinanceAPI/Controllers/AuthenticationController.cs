@@ -1,7 +1,9 @@
-﻿using Finance.Data.Interfaces;
+﻿using AutoMapper;
+using Finance.Data.Interfaces;
 using Finance.Models.DTOs;
 using Finance.Models.Models;
 using Finance.Models.StaticDependencies;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -20,26 +22,38 @@ namespace FinanceAPI.Controllers
         private readonly IConfiguration config;
         private readonly IUserRepository userRepository;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly IValidator<LoginInput> loginInputValidator;
+        private readonly IValidator<RegisterInput> registerInputValidator;
+        private readonly IMapper mapper;
 
         public AuthenticationController(
             UserManager<ApplicationUser> userManager,
             IConfiguration config,
             IUserRepository userRepository,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IValidator<LoginInput> loginInputValidator,
+            IValidator<RegisterInput> registerInputValidator,
+            IMapper mapper)
         {
             this.userManager = userManager;
             this.config = config;
             this.userRepository = userRepository;
             this.roleManager = roleManager;
+            this.loginInputValidator = loginInputValidator;
+            this.registerInputValidator = registerInputValidator;
+            this.mapper = mapper;
         }
+
         [HttpPost("SignUp")]
-        public async Task<IActionResult> SignUp(AuthenticationInput input)
+        public async Task<IActionResult> SignUp(RegisterInput input)
         {
-            var user = new ApplicationUser
+            var validationResult = registerInputValidator.Validate(input);
+
+            if (!validationResult.IsValid)
             {
-                UserName = input.Email,
-                Email = input.Email
-            };
+                return BadRequest(new HttpValidationProblemDetails(validationResult.ToDictionary()));
+            }
+            var user = mapper.Map<RegisterInput, ApplicationUser>(input);
 
             var result = await userManager.CreateAsync(user, input.Password);
 
@@ -56,8 +70,15 @@ namespace FinanceAPI.Controllers
         }
 
         [HttpPost("SignIn")]
-        public async Task<IActionResult> SignIn(AuthenticationInput input)
+        public async Task<IActionResult> SignIn(LoginInput input)
         {
+            var validationResult = loginInputValidator.Validate(input);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new HttpValidationProblemDetails(validationResult.ToDictionary()));
+            }
+
             var user = await userManager.FindByEmailAsync(input.Email);
 
             if (user == null || !(await userManager.CheckPasswordAsync(user, input.Password)))
@@ -75,7 +96,19 @@ namespace FinanceAPI.Controllers
 
             SetRefreshTokenCookie(refreshToken);
 
-            return Ok(new { Token = jwtToken });
+            var signInResult = new LoginResult()
+            {
+                Token = jwtToken,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                DailyAllowance = user.DailyAllowance,
+                Savings = user.Savings,
+                Gender = user.Gender,
+            };
+
+            return Ok(signInResult);
         }
 
         [HttpPost("Refresh")]

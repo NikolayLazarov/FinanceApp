@@ -24,6 +24,16 @@ namespace Finance.Data.Data
                .HasOne(rt => rt.User)
                .WithMany(u => u.RefreshTokens)
                .HasForeignKey(rt => rt.UserId);
+
+            modelBuilder.Entity<ApplicationUser>()
+            .Property(x => x.Gender)
+            .HasConversion<string>()
+            .HasMaxLength(30);
+
+            modelBuilder.Entity<Expense>()
+            .Property(x => x.Category)
+            .HasConversion<string>()
+            .HasMaxLength(30);
         }
     }
 }

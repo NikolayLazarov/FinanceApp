@@ -1,5 +1,7 @@
 using FinanceAPI.DependencyInjection;
 using FinanceAPI.Exceptions;
+using FluentValidation;
+using System.Text.Json.Serialization;
 
 namespace FinanceAPI
 {
@@ -16,12 +18,17 @@ namespace FinanceAPI
                 .AddAuthorizationPolicies()
                 .ConfigureIdentity()
                 .InjectDBContext(builder.Configuration)
+                .AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true)
                 .AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies())
                 .AddSwagger()
                 .AddCustomProblemDetails()
                 .AddExceptionHandler<GlobalExceptionHandler>()
                 .AddSwaggerDocumentation()
-                .AddControllers();
+                .AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             var app = builder.Build();
 

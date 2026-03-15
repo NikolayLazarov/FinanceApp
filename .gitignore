@@ -162,3 +162,79 @@ FinanceAPI/*.tar
 /Client/.env
 /FinanceAPI/FinanceAPI/appsettings.json
 /FinanceAPI/appsettings.json
+
+# Gradle
+
+.gradle/
+build/
+*/build/
+
+# Local configuration (SDK path, etc.)
+
+local.properties
+
+# Log files
+
+*.log
+
+# Android Studio / IntelliJ
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Keystore files
+
+*.jks
+*.keystore
+
+# Generated files
+
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android build outputs
+
+*.apk
+*.ap_
+*.aab
+
+# Kotlin
+
+*.kotlin_module
+
+# OS generated files
+
+.DS_Store
+Thumbs.db
+
+# Navigation editor temp files
+
+.navigation/
+
+# Android Studio captures
+
+captures/
+
+# Gradle wrapper (keep jar but ignore distribution zips)
+
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin/Native
+
+.konan/
+
+# Firebase / Google services (if you keep secrets out of repo)
+
+google-services.json
+
+# NDK
+
+obj/
+
+# Profiling
+
+*.hprof
+

@@ -4,6 +4,7 @@ using Finance.Models.DTOs;
 using Finance.Models.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -17,16 +18,19 @@ namespace FinanceAPI.Controllers
     {
         private readonly IExpensesRepository _expensesRepository;
         private readonly IMapper _mapper;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IValidator<CreateOrUpdateExpenseInput> _createOrUpdateExpenseInputValidator;
         private readonly IValidator<DeleteExpenseInput> _deleteExpenseInputValidator;
         public ExpensesController(
             IExpensesRepository expenseRepository,
             IMapper mapper,
+            UserManager<ApplicationUser> userManager,
             IValidator<CreateOrUpdateExpenseInput> createOrUpdateExpenseInputValidator,
             IValidator<DeleteExpenseInput> deleteExpenseInputValidator)
         {
             _expensesRepository = expenseRepository;
             _mapper = mapper;
+            _userManager = userManager;
             _createOrUpdateExpenseInputValidator = createOrUpdateExpenseInputValidator;
             _deleteExpenseInputValidator = deleteExpenseInputValidator;
         }
@@ -85,8 +89,10 @@ namespace FinanceAPI.Controllers
                 return BadRequest(problemDetails);
             }
 
+            var user = await _userManager.GetUserAsync(User);
+
             expense.DeletionTime = DateTime.UtcNow;
-            //expense.DeleterUserId = userId;
+            expense.DeleterUserId = user.Id;
 
             _expensesRepository.Delete(expense);
             await _expensesRepository.SaveChangesAsync();
@@ -97,8 +103,11 @@ namespace FinanceAPI.Controllers
         private async Task<IActionResult> CreateExpense(CreateOrUpdateExpenseInput input)
         {
             var newExpense = _mapper.Map<Expense>(input);
+
+            var user = await _userManager.GetUserAsync(User);
+
             newExpense.CreationDate = DateTime.UtcNow;
-            //newExpense.CreatorUserId = userId;
+            newExpense.CreatorUserId = user.Id;
 
             _expensesRepository.Add(newExpense);
             await _expensesRepository.SaveChangesAsync();

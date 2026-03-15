@@ -1,5 +1,6 @@
 using FinanceAPI.DependencyInjection;
 using FinanceAPI.Exceptions;
+using FluentValidation;
 
 namespace FinanceAPI
 {
@@ -16,6 +17,7 @@ namespace FinanceAPI
                 .AddAuthorizationPolicies()
                 .ConfigureIdentity()
                 .InjectDBContext(builder.Configuration)
+                .AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true)
                 .AddAutoMapper(cfg => { }, AppDomain.CurrentDomain.GetAssemblies())
                 .AddSwagger()
                 .AddCustomProblemDetails()

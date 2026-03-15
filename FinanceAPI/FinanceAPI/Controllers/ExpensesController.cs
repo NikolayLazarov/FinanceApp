@@ -2,6 +2,7 @@
 using Finance.Data.Interfaces;
 using Finance.Models.DTOs;
 using Finance.Models.Models;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,13 +17,18 @@ namespace FinanceAPI.Controllers
     {
         private readonly IExpensesRepository _expensesRepository;
         private readonly IMapper _mapper;
-
+        private readonly IValidator<CreateOrUpdateExpenseInput> _createOrUpdateExpenseInputValidator;
+        private readonly IValidator<DeleteExpenseInput> _deleteExpenseInputValidator;
         public ExpensesController(
             IExpensesRepository expenseRepository,
-            IMapper mapper)
+            IMapper mapper,
+            IValidator<CreateOrUpdateExpenseInput> createOrUpdateExpenseInputValidator,
+            IValidator<DeleteExpenseInput> deleteExpenseInputValidator)
         {
             _expensesRepository = expenseRepository;
             _mapper = mapper;
+            _createOrUpdateExpenseInputValidator = createOrUpdateExpenseInputValidator;
+            _deleteExpenseInputValidator = deleteExpenseInputValidator;
         }
 
         [HttpGet("GetExpenses")]
@@ -37,6 +43,13 @@ namespace FinanceAPI.Controllers
         [HttpPost("CreateOrUpdateExpense")]
         public async Task<IActionResult> CreateOrUpdateExpense(CreateOrUpdateExpenseInput input)
         {
+            var validationResult = _createOrUpdateExpenseInputValidator.Validate(input);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new HttpValidationProblemDetails(validationResult.ToDictionary()));
+            }
+
             if (input.Id.HasValue)
             {
                 return await UpdateExpense(input);
@@ -47,6 +60,13 @@ namespace FinanceAPI.Controllers
         [HttpPost("DeleteExpense")]
         public async Task<IActionResult> DeleteExpense(DeleteExpenseInput input)
         {
+            var validationResult = _deleteExpenseInputValidator.Validate(input);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new HttpValidationProblemDetails(validationResult.ToDictionary()));
+            }
+
             var expense = await _expensesRepository.GetByIdAsync(input.Id);
 
             if (expense is null)

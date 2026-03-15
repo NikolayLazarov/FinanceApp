@@ -2,6 +2,7 @@
 using Finance.Models.DTOs;
 using Finance.Models.Models;
 using Finance.Models.StaticDependencies;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -20,21 +21,32 @@ namespace FinanceAPI.Controllers
         private readonly IConfiguration config;
         private readonly IUserRepository userRepository;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly IValidator<AuthenticationInput> authenticationInputValidator;
 
         public AuthenticationController(
             UserManager<ApplicationUser> userManager,
             IConfiguration config,
             IUserRepository userRepository,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IValidator<AuthenticationInput> authenticationInput)
         {
             this.userManager = userManager;
             this.config = config;
             this.userRepository = userRepository;
             this.roleManager = roleManager;
+            this.authenticationInputValidator = authenticationInput;
         }
+
         [HttpPost("SignUp")]
         public async Task<IActionResult> SignUp(AuthenticationInput input)
         {
+            var validationResult = authenticationInputValidator.Validate(input);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new HttpValidationProblemDetails(validationResult.ToDictionary()));
+            }
+
             var user = new ApplicationUser
             {
                 UserName = input.Email,
@@ -58,6 +70,13 @@ namespace FinanceAPI.Controllers
         [HttpPost("SignIn")]
         public async Task<IActionResult> SignIn(AuthenticationInput input)
         {
+            var validationResult = authenticationInputValidator.Validate(input);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new HttpValidationProblemDetails(validationResult.ToDictionary()));
+            }
+
             var user = await userManager.FindByEmailAsync(input.Email);
 
             if (user == null || !(await userManager.CheckPasswordAsync(user, input.Password)))

@@ -1,0 +1,21 @@
+﻿using Finance.Models.DTOs;
+using FluentValidation;
+
+namespace FinanceAPI.Validators
+{
+    public class AuthenticationInputValidator : AbstractValidator<AuthenticationInput>
+    {
+        public AuthenticationInputValidator()
+        {
+            RuleFor(x => x.Email)
+                .NotEmpty().WithMessage("Email is required.")
+                .MinimumLength(5).WithMessage("Email must be greater than 5 characters long.")
+                .MaximumLength(100).WithMessage("Email must be at most 100 characters long.");
+
+            RuleFor(x => x.Password)
+                .NotEmpty().WithMessage("Email is required.")
+                .MinimumLength(5).WithMessage("Email must be greater than 5 characters long.")
+                .MaximumLength(100).WithMessage("Email must be at most 100 characters long.");
+        }
+    }
+}

@@ -60,8 +60,8 @@ dependencies {
 //    implementation("com.patrykandpatrick.vico:compose-m3:$vicoVersion")
 //    implementation("com.patrykandpatrick.vico:core:$vicoVersion")
 
-
-        implementation("io.github.ehsannarmani:compose-charts:0.2.5")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.10.5")
+    implementation("io.github.ehsannarmani:compose-charts:0.2.5")
 
 // За viewModelScope (ако ползваш ViewModel - силно препоръчително
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")

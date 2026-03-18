@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.compose.MyApplicationTheme
 import com.example.myapplication.pages.MainPage
 import com.example.myapplication.components.BezierCurve
@@ -54,11 +56,18 @@ import com.example.myapplication.components.Title
 import com.example.myapplication.pages.GraphsPage
 import com.example.myapplication.pages.Profile
 import com.example.myapplication.services.RetrofitClient
+import com.example.myapplication.view.MainViewModel
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        splashScreen.setKeepOnScreenCondition {
+            viewModel.isLoading.value
+        }
         setContent {
             // 1. Създаваме състояние за нашия списък
             var products by remember { mutableStateOf<List<Product>>(emptyList()) }

@@ -2,10 +2,12 @@ package com.example.myapplication.components
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +29,10 @@ fun BarChart(
     interval: Int
 ) {
 
-    Box(modifier.size(300.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier.size(300.dp)
+            .background(lightColorScheme().primaryContainer)
+        , contentAlignment = Alignment.Center) {
 
         val textPaint = Paint().apply {
             textSize = 30f
@@ -36,11 +41,9 @@ fun BarChart(
         Canvas(
             modifier = Modifier
                 .padding(8.dp)
-                .fillMaxSize()
+                .fillMaxSize(),
         ) {
 
-//            val maxX = xValues.max()
-//            val xSpacing = size.width.div(8)
             val maxX = xValuesInt.max()
             val xSpacing = size.width.div(maxX)
 
@@ -72,7 +75,7 @@ fun BarChart(
                 val y = size.height - (ySpacing.times(value))
 
                 drawLine(
-                    color = Color.Blue,
+                    color = lightColorScheme().primary,
                     start = Offset(x, size.height),
                     end = Offset(x, y),
                     strokeWidth = 20f
@@ -82,16 +85,3 @@ fun BarChart(
     }
 
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun BarChartPreview(modifier: Modifier = Modifier) {
-//    BarChart(
-//        xValues = listOf(0, 4, 5, 6, 7, 8, 9, 10, 11, 12).map { it.times(10) },
-//        yValues = listOf(0, 4, 5, 6, 7, 8, 9, 10, 11, 12).map { it.times(10) },
-//        interval = 10,
-//        modifier = Modifier.size(300.dp),
-//        points = listOf(0f, 60f, 60f, 50f, 10f)
-//    )
-//
-//}

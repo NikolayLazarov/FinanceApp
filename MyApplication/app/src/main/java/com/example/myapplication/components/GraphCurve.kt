@@ -5,10 +5,12 @@ import android.graphics.PathMeasure
 import android.graphics.PointF
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -44,7 +46,7 @@ fun BezierCurve(
         )
     }
 
-    Box(modifier.size(300.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(300.dp).background(lightColorScheme().surfaceContainer).padding(), contentAlignment = Alignment.Center) {
         Canvas(
             modifier = Modifier
                 .padding(12.dp)
@@ -90,7 +92,7 @@ fun BezierCurve(
 
                     coordinatesCl1.add(PointF(x, y))
                     drawCircle(
-                        Color.Blue,
+                        lightColorScheme().secondary,
                         radius = 10f,
                         center = Offset(x, y)
                     )
@@ -127,7 +129,7 @@ fun BezierCurve(
 
                 drawPath(
                     Path().apply { addPath(animationPath.asComposePath()) },
-                    color = if (current == 0) Color.Red else Color.Yellow,
+                    color = if (current == 0) lightColorScheme().primary else lightColorScheme().secondary,
                     style = Stroke(width = 12f)
                 )
                 current +=1

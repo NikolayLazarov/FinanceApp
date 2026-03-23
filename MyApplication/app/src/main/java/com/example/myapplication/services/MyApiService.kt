@@ -1,6 +1,5 @@
 package com.example.myapplication.services
-import com.example.myapplication.Product
-import com.example.myapplication.User
+import com.example.myapplication.models.Product
 import retrofit2.http.GET
 
 

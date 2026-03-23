@@ -1,4 +1,4 @@
-package com.example.myapplication.components
+package com.example.myapplication.pages.main.common.components
 
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography

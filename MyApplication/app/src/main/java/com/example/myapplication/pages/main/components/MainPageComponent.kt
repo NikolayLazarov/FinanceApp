@@ -1,4 +1,4 @@
-package com.example.myapplication.MainPageCOmponents
+package com.example.myapplication.pages.main.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme

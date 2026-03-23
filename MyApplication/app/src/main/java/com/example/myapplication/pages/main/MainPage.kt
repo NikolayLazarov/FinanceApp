@@ -1,12 +1,12 @@
-package com.example.myapplication.pages
+package com.example.myapplication.pages.main
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.example.myapplication.Product
-import com.example.myapplication.MainPageCOmponents.ProductsBlock
-import com.example.myapplication.MainPageCOmponents.RemainingBlock
-import com.example.myapplication.components.Title
+import com.example.myapplication.models.Product
+import com.example.myapplication.pages.main.components.ProductsBlock
+import com.example.myapplication.pages.main.components.RemainingBlock
+import com.example.myapplication.pages.main.common.components.Title
 
 @Composable
 fun MainPage(products: List<Product>, modifier: Modifier = Modifier){

@@ -1,4 +1,4 @@
-package com.example.myapplication.pages
+package com.example.myapplication.pages.statistics
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,9 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.components.Title
-import com.example.myapplication.components.BarChart
-import com.example.myapplication.components.BezierCurve
+import com.example.myapplication.pages.main.common.components.Title
+import com.example.myapplication.pages.statistics.components.BarChart
+import com.example.myapplication.pages.profile.components.BezierCurve
 
 @Composable
 fun GraphsPage(modifier: Modifier = Modifier){

@@ -1,8 +1,9 @@
-package com.example.myapplication.components
+package com.example.myapplication.pages.profile.components
 
 import android.graphics.Paint
 import android.graphics.PathMeasure
 import android.graphics.PointF
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -24,7 +25,6 @@ import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 
@@ -37,7 +37,7 @@ fun BezierCurve(
     points2: List<Float>,
     interval: Int
 ) {
-    val animationProgress = remember { androidx.compose.animation.core.Animatable(0f) }
+    val animationProgress = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         animationProgress.animateTo(

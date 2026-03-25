@@ -36,12 +36,36 @@ namespace FinanceAPI.Controllers
         }
 
         [HttpGet("GetExpenses")]
-        public async Task<IEnumerable<Expense>> GetExpenses()
+        public async Task<IActionResult> GetExpenses()
         {
-            return await _expensesRepository
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized();
+
+            var expenses = await _expensesRepository
                 .GetAll()
+                .Where(e => e.CreatorUserId == user.Id && e.DeletionTime == null)
                 .AsNoTracking()
                 .ToListAsync();
+
+            return Ok(expenses);
+        }
+
+        [HttpPost("UpdateDailyAllowance")]
+        public async Task<IActionResult> UpdateDailyAllowance([FromBody] UpdateDailyAllowanceInput input)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized();
+
+            user.DailyAllowance = input.DailyAllowance;
+            user.Savings = input.Savings;
+            var result = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new { message = "Allowance updated successfully", dailyAllowance = user.DailyAllowance, savings = user.Savings });
         }
 
         [HttpPost("CreateOrUpdateExpense")]
@@ -102,6 +126,8 @@ namespace FinanceAPI.Controllers
 
         private async Task<IActionResult> CreateExpense(CreateOrUpdateExpenseInput input)
         {
+            input.Date = DateTime.SpecifyKind(input.Date, DateTimeKind.Utc);
+
             var newExpense = _mapper.Map<Expense>(input);
 
             var user = await _userManager.GetUserAsync(User);
@@ -117,6 +143,8 @@ namespace FinanceAPI.Controllers
 
         private async Task<IActionResult> UpdateExpense(CreateOrUpdateExpenseInput input)
         {
+            input.Date = DateTime.SpecifyKind(input.Date, DateTimeKind.Utc);
+
             var expense = await _expensesRepository.GetByIdAsync(input.Id.Value);
 
             if (expense is null)

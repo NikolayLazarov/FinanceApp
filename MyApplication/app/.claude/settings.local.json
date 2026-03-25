@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersviktosourcereposFinanceAppMyApplicationappsrc -type f \\\\\\(-name *.kt -o -name *.xml \\\\\\))",
+      "Bash(find C:UsersviktosourcereposFinanceAppMyApplicationappsrcmainjavacomexamplemyapplicationpages -name *.kt)",
+      "Bash(find C:UsersviktosourcereposFinanceAppMyApplicationappsrcmainresdrawable* -type f)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"SharedPreferences\\\\|DataStore\\\\|Token\\\\|Auth\\\\|Preference\" /c/Users/vikto/source/repos/FinanceApp/MyApplication/app/src/main/java --include=*.kt)",
+      "Bash(xargs ls:*)"
+    ]
+  }
+}

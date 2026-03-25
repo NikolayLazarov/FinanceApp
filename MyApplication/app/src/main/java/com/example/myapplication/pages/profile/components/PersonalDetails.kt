@@ -10,13 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun PersonalDetails(name: String, age: Int, email: String, mobile: String){
+fun PersonalDetails(name: String, age: Int, email: String, gender: String) {
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer, // Светло син/лилав фон
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer, // Тъмен текст за контраст
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = MaterialTheme.shapes.small,
         modifier = Modifier.padding(20.dp)
-
     ) {
         Column(
             modifier = Modifier.padding(10.dp)
@@ -24,9 +23,7 @@ fun PersonalDetails(name: String, age: Int, email: String, mobile: String){
             Text(text = "Name: $name")
             Text(text = "Age: $age")
             Text(text = "Email: $email")
-            Text(text = "Mobile: $mobile")
+            Text(text = "Gender: $gender")
         }
-
-
     }
 }

@@ -27,7 +27,7 @@ fun GraphsPage(modifier: Modifier = Modifier){
 
     val yValues = List(count) { it *step.toInt() }
     Box(
-        modifier = Modifier.fillMaxSize(), // Заема целия екран
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
 

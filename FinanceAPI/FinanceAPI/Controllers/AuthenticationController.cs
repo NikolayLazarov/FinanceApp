@@ -4,6 +4,7 @@ using Finance.Models.DTOs;
 using Finance.Models.Models;
 using Finance.Models.StaticDependencies;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -140,6 +141,29 @@ namespace FinanceAPI.Controllers
             SetRefreshTokenCookie(newRefresh);
 
             return Ok(new { Token = newJwt });
+        }
+
+        [HttpGet("Me")]
+        [Authorize(Policy = "UserOnly")]
+        public async Task<IActionResult> Me()
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized();
+
+            var result = new LoginResult
+            {
+                Token = string.Empty,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                DailyAllowance = user.DailyAllowance,
+                Savings = user.Savings,
+                Gender = user.Gender,
+            };
+
+            return Ok(result);
         }
 
         [HttpPost("Revoke")]

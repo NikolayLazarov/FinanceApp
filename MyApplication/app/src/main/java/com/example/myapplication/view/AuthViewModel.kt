@@ -50,12 +50,22 @@ class AuthViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // Restore persisted user info
-                _userInfo.value = TokenManager.userInfo
-
                 // Validate the token by making an authenticated call.
                 // If expired, the OkHttp authenticator will auto-refresh it.
                 RetrofitClient.apiService.getExpenses()
+
+                // Try to restore persisted user info; if missing, fetch from server
+                val saved = TokenManager.userInfo
+                if (saved != null) {
+                    _userInfo.value = saved
+                } else {
+                    val meResponse = RetrofitClient.apiService.getMe()
+                    if (meResponse.isSuccessful) {
+                        val info = meResponse.body()
+                        TokenManager.userInfo = info
+                        _userInfo.value = info
+                    }
+                }
 
                 _isLoggedIn.value = true
             } catch (_: Exception) {

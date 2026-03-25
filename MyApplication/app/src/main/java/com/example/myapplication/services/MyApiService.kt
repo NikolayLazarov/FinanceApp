@@ -25,6 +25,9 @@ interface MyApiService {
     @POST("Authentication/Revoke")
     suspend fun revoke(): Response<Unit>
 
+    @GET("Authentication/Me")
+    suspend fun getMe(): Response<LoginResult>
+
     // Expenses
     @GET("Expenses/GetExpenses")
     suspend fun getExpenses(): List<Product>

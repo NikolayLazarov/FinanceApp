@@ -56,9 +56,10 @@ android {
 
 dependencies {
 //    val vicoVersion = "2.0.0-alpha.22" // Използвайте една и съща версия за всички
-//    implementation("com.patrykandpatrick.vico:compose:$vicoVersion")
-//    implementation("com.patrykandpatrick.vico:compose-m3:$vicoVersion")
-//    implementation("com.patrykandpatrick.vico:core:$vicoVersion")
+
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1");
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
 
     implementation("androidx.core:core-splashscreen:1.0.1")
 

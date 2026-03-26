@@ -1,59 +1,148 @@
 package com.example.myapplication.pages.statistics
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.models.Product
 import com.example.myapplication.pages.statistics.components.BarChart
 import com.example.myapplication.pages.profile.components.BezierCurve
+import com.example.myapplication.view.TimeGroup
+
+private val expenseCategories = listOf(
+    "Food", "Transportation", "Utilities", "Healthcare", "Education",
+    "Entertainment", "Shopping", "Travel", "Finance", "Other"
+)
 
 @Composable
-fun GraphsPage(modifier: Modifier = Modifier) {
+fun GraphsPage(
+    expenses: List<Product> = emptyList(),
+    timeGroup: TimeGroup = TimeGroup.DAY,
+    selectedCategory: String? = null,
+    onTimeGroupChange: (TimeGroup) -> Unit = {},
+    onCategoryChange: (String?) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    // Filter expenses based on selected category
+    val filteredExpenses = if (selectedCategory != null) {
+        expenses.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+    } else {
+        expenses
+    }
+
+    // Mock data for charts (in a real app, this would be derived from filteredExpenses and timeGroup)
     val dailyExpensesList = listOf(0f, 70f, 60f, 60f, 50f, 10f, 16f, 110f)
     val daysList = listOf("", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val daysListInt = listOf(0, 1, 2, 3, 4, 5, 6, 7)
-    val max = dailyExpensesList.max()
+    val max = dailyExpensesList.maxOrNull() ?: 100f
     val count = 5
-    val step = max / (count - 1)
+    val step = max / (count - 1).coerceAtLeast(1)
     val yValues = List(count) { it * step.toInt() }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Statistics",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = "Your spending overview",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Text(
+                text = "Statistics",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Your spending overview",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        // Time group filter chips
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(TimeGroup.entries.toList()) { group ->
+                FilterChip(
+                    selected = group == timeGroup,
+                    onClick = { onTimeGroupChange(group) },
+                    label = {
+                        Text(
+                            group.name.lowercase().replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+            }
+        }
+
+        // Category filter chips
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                FilterChip(
+                    selected = selectedCategory == null,
+                    onClick = { onCategoryChange(null) },
+                    label = {
+                        Text("All", style = MaterialTheme.typography.labelMedium)
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                )
+            }
+            items(expenseCategories) { category ->
+                FilterChip(
+                    selected = selectedCategory == category,
+                    onClick = {
+                        onCategoryChange(if (selectedCategory == category) null else category)
+                    },
+                    label = {
+                        Text(category, style = MaterialTheme.typography.labelMedium)
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                )
+            }
+        }
 
         // Weekly bar chart
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
@@ -61,8 +150,14 @@ fun GraphsPage(modifier: Modifier = Modifier) {
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                val timeLabel = when(timeGroup) {
+                    TimeGroup.DAY -> "Daily"
+                    TimeGroup.WEEK -> "Weekly"
+                    TimeGroup.MONTH -> "Monthly"
+                    TimeGroup.YEAR -> "Yearly"
+                }
                 Text(
-                    text = "Weekly Expenses",
+                    text = "$timeLabel Expenses",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -82,7 +177,9 @@ fun GraphsPage(modifier: Modifier = Modifier) {
 
         // Trend curves
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
@@ -116,6 +213,6 @@ fun GraphsPage(modifier: Modifier = Modifier) {
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(72.dp))
     }
 }

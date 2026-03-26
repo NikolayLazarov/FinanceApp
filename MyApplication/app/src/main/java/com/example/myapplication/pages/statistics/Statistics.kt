@@ -69,7 +69,6 @@ fun GraphsPage(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 BarChart(
-                    xValuesInt = daysListInt,
                     xValues = daysList,
                     yValues = yValues,
                     interval = 10,

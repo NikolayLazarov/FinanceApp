@@ -44,7 +44,7 @@ fun BarChart(
     Box(
         modifier = modifier
             .background(containerColor, shape = MaterialTheme.shapes.medium)
-            .padding(top = 16.dp, bottom = 32.dp, start = 40.dp, end = 16.dp),
+            .padding(top = 16.dp, bottom = 40.dp, start = 45.dp, end = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         val textPaint = Paint().apply {
@@ -59,8 +59,8 @@ fun BarChart(
             val canvasWidth = size.width
             val canvasHeight = size.height
 
-            val maxX = xValues.size - 1
-            val xSpacing = if (maxX > 0) canvasWidth.div(maxX) else canvasWidth
+            val numEntries = xValues.size
+            val xSpacing = if (numEntries > 1) canvasWidth.div(numEntries - 1) else canvasWidth
 
             val maxY = yValues.maxOrNull()?.toFloat() ?: 100f
             val ySpacing = if (maxY > 0) canvasHeight.div(maxY) else canvasHeight
@@ -94,28 +94,29 @@ fun BarChart(
 
             // Draw Bars
             points.forEachIndexed { index, value ->
-                if (index == 0 && xValues.firstOrNull() == "") return@forEachIndexed // Skip padding point if exists
-                
+                // Skip drawing if it's the padding entry (empty label)
+                if (index < xValues.size && xValues[index].isEmpty()) return@forEachIndexed
+
                 val x = xSpacing * index
                 val animatedValue = value * animationProgress.value
                 val y = canvasHeight - (ySpacing * animatedValue)
 
-                // Use provided color if available, otherwise fallback
-                val color = if (index - 1 < barColors.size && index > 0) {
-                    barColors[index - 1]
-                } else if (index < barColors.size) {
+                val color = if (index < barColors.size) {
                     barColors[index]
                 } else {
                     primaryColor
                 }
 
-                drawLine(
-                    color = color,
-                    start = Offset(x, canvasHeight),
-                    end = Offset(x, y),
-                    strokeWidth = (xSpacing * 0.5f).coerceIn(10f, 40f),
-                    cap = StrokeCap.Round
-                )
+                // Don't draw zero-height bars to keep it clean
+                if (animatedValue > 0) {
+                    drawLine(
+                        color = color,
+                        start = Offset(x, canvasHeight),
+                        end = Offset(x, y),
+                        strokeWidth = (xSpacing * 0.4f).coerceIn(8f, 35f),
+                        cap = StrokeCap.Round
+                    )
+                }
             }
         }
     }

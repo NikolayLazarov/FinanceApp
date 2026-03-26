@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.myapplication.models.CreateExpenseRequest
+import com.example.myapplication.models.DummyData
 import com.example.myapplication.models.LoginResult
 import com.example.myapplication.models.Product
 import com.example.myapplication.pages.Scanner
@@ -265,7 +266,13 @@ fun MyApplicationApp(
             ) { destination ->
                 Box(modifier = Modifier.padding(innerPadding)) {
                     when (destination) {
-                        AppDestinations.STATISTICS -> GraphsPage()
+                        AppDestinations.STATISTICS -> GraphsPage(
+                            expenses = expenses,
+                            timeGroup = timeGroup,
+                            selectedCategory = selectedCategory,
+                            onTimeGroupChange = onTimeGroupChange,
+                            onCategoryChange = onCategoryChange
+                        )
                         AppDestinations.HOME -> MainPage(
                             expenses = expenses,
                             timeGroup = timeGroup,

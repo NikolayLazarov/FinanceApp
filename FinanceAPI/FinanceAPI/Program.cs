@@ -13,6 +13,7 @@ namespace FinanceAPI
 
             builder.Services
                 .AddServices()
+                .AddOcrService(builder.Configuration)
                 .AddIdentity()
                 .AddJWTAuthentication(builder.Configuration)
                 .AddAuthorizationPolicies()

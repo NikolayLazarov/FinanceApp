@@ -6,7 +6,9 @@
       "Bash(find C:UsersviktosourcereposFinanceAppMyApplicationappsrcmainresdrawable* -type f)",
       "Bash(xargs grep:*)",
       "Bash(grep -r \"SharedPreferences\\\\|DataStore\\\\|Token\\\\|Auth\\\\|Preference\" /c/Users/vikto/source/repos/FinanceApp/MyApplication/app/src/main/java --include=*.kt)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Read(//c/Users/vikto/source/repos/FinanceApp/MyApplication/**)",
+      "Bash(./gradlew :app:compileDebugKotlin)"
     ]
   }
 }

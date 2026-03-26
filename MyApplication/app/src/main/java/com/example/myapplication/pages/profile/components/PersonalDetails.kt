@@ -14,16 +14,31 @@ fun PersonalDetails(name: String, age: Int, email: String, gender: String) {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = MaterialTheme.shapes.small,
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.padding(20.dp)
     ) {
         Column(
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text(text = "Name: $name")
-            Text(text = "Age: $age")
-            Text(text = "Email: $email")
-            Text(text = "Gender: $gender")
+            Text(
+                text = "Name: $name",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = "Age: $age",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Text(
+                text = "Email: $email",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Text(
+                text = "Gender: $gender",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
         }
     }
 }

@@ -11,6 +11,7 @@ android {
         }
     }
 
+
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 26
@@ -64,6 +65,7 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     implementation("androidx.compose.ui:ui-text-google-fonts:1.10.5")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("io.github.ehsannarmani:compose-charts:0.2.5")
 
 // За viewModelScope (ако ползваш ViewModel - силно препоръчително

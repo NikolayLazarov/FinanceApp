@@ -2,17 +2,14 @@ package com.example.myapplication.pages.statistics.components
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
@@ -26,60 +23,71 @@ fun BarChart(
     points: List<Float>,
     interval: Int
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Box(
-        modifier.size(300.dp)
-            .background(lightColorScheme().primaryContainer)
-        , contentAlignment = Alignment.Center) {
-
+    Canvas(
+        modifier = modifier
+            .padding(8.dp)
+            .fillMaxSize(),
+    ) {
         val textPaint = Paint().apply {
-            textSize = 30f
-            color = Color.Black.toArgb()
+            textSize = 28f
+            color = textColor.toArgb()
+            isAntiAlias = true
         }
-        Canvas(
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxSize(),
-        ) {
 
-            val maxX = xValuesInt.max()
-            val xSpacing = size.width.div(maxX)
+        val maxX = xValuesInt.max()
+        val xSpacing = size.width / maxX
 
-            val maxY = yValues.max()
-            val ySpacing = size.height.div(maxY)
+        val maxY = yValues.max()
+        val ySpacing = size.height / maxY
 
-            var index = 0;
-            for(day in xValues){
-                drawContext.canvas.nativeCanvas.drawText(
-                    day,
-                    xSpacing.times(index),
-                    size.height + 30,
-                    textPaint
-                    )
-                index += 1
-            }
+        // X axis labels
+        xValues.forEachIndexed { index, day ->
+            drawContext.canvas.nativeCanvas.drawText(
+                day,
+                xSpacing * index,
+                size.height + 28,
+                textPaint
+            )
+        }
 
-            for (index in 0..maxY step interval) {
-                drawContext.canvas.nativeCanvas.drawText(
-                    if (index == 0) "" else index.toString(),
-                    0f,
-                    size.height - (ySpacing.times(index)),
-                    textPaint
-                )
-            }
-            // if you want to shift your bar towards right horizontally,then add some values in you x coordinate
-            points.forEachIndexed { index, value ->
-                val x = xSpacing.times(index)
-                val y = size.height - (ySpacing.times(value))
+        // Y axis labels
+        for (index in 0..maxY step interval) {
+            drawContext.canvas.nativeCanvas.drawText(
+                if (index == 0) "" else index.toString(),
+                0f,
+                size.height - (ySpacing * index),
+                textPaint
+            )
+        }
 
-                drawLine(
-                    color = lightColorScheme().primary,
-                    start = Offset(x, size.height),
-                    end = Offset(x, y),
-                    strokeWidth = 20f
+        // Bars with rounded top
+        val barWidth = 16f
+        points.forEachIndexed { index, value ->
+            val x = xSpacing * index - barWidth / 2
+            val y = size.height - (ySpacing * value)
+            val barHeight = size.height - y
+
+            // Background bar (ghost)
+            drawRoundRect(
+                color = primaryContainerColor.copy(alpha = 0.3f),
+                topLeft = Offset(x, 0f),
+                size = Size(barWidth, size.height),
+                cornerRadius = CornerRadius(barWidth / 2)
+            )
+
+            // Actual bar
+            if (barHeight > 0) {
+                drawRoundRect(
+                    color = primaryColor,
+                    topLeft = Offset(x, y),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = CornerRadius(barWidth / 2)
                 )
             }
         }
     }
-
 }

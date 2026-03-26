@@ -1,5 +1,6 @@
 ﻿using Finance.Data.Interfaces;
 using Finance.Data.Repository;
+using FinanceAPI.Services;
 
 namespace FinanceAPI.DependencyInjection
 {
@@ -9,6 +10,17 @@ namespace FinanceAPI.DependencyInjection
         {
             services.AddScoped<IExpensesRepository, ExpensesRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
+            return services;
+        }
+
+        public static IServiceCollection AddOcrService(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddHttpClient<IOcrService, OcrService>(client =>
+            {
+                var baseUrl = configuration["OcrService:BaseUrl"] ?? "http://localhost:8000";
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
             return services;
         }
 

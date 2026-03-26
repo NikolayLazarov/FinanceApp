@@ -5,6 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,24 +17,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.DocumentScanner
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.InsertChart
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.InsertChart
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -71,7 +87,6 @@ class MainActivity : ComponentActivity() {
         TokenManager.init(applicationContext)
         RetrofitClient.init(applicationContext)
 
-        // Try to restore session from saved token
         authViewModel.tryRestoreSession()
 
         splashScreen.setKeepOnScreenCondition {
@@ -99,7 +114,7 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme(darkTheme = false) {
                 if (isRestoringSession) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else if (!isLoggedIn) {
                     AuthPage(
@@ -117,7 +132,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
                     MyApplicationApp(
@@ -145,7 +160,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyApplicationApp(
     expenses: List<Product> = emptyList(),
@@ -163,37 +177,15 @@ fun MyApplicationApp(
     var showAddExpenseDialog by remember { mutableStateOf(false) }
 
     if (showAddChooser) {
-        AlertDialog(
-            onDismissRequest = { showAddChooser = false },
-            title = { Text("Add Expense") },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = {
-                            showAddChooser = false
-                            showScanner = true
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Scan Receipt")
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = {
-                            showAddChooser = false
-                            showAddExpenseDialog = true
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Add Manually")
-                    }
-                }
+        AddChooserDialog(
+            onDismiss = { showAddChooser = false },
+            onScanReceipt = {
+                showAddChooser = false
+                showScanner = true
             },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showAddChooser = false }) {
-                    Text("Cancel")
-                }
+            onAddManually = {
+                showAddChooser = false
+                showAddExpenseDialog = true
             }
         )
     }
@@ -214,43 +206,65 @@ fun MyApplicationApp(
             onCancel = { showScanner = false }
         )
     } else {
-        NavigationSuiteScaffold(
-            navigationSuiteItems = {
-                AppDestinations.entries.forEach { destination ->
-                    item(
-                        icon = {
-                            Icon(
-                                destination.icon,
-                                contentDescription = destination.label
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
+                    AppDestinations.entries.forEach { destination ->
+                        val selected = destination == currentDestination
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    if (selected) destination.selectedIcon else destination.icon,
+                                    contentDescription = destination.label,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    destination.label,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            selected = selected,
+                            onClick = { currentDestination = destination },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
                             )
-                        },
-                        label = { Text(destination.label) },
-                        selected = destination == currentDestination,
-                        onClick = { currentDestination = destination }
-                    )
+                        )
+                    }
+                }
+            },
+            floatingActionButton = {
+                if (currentDestination == AppDestinations.HOME) {
+                    FloatingActionButton(
+                        onClick = { showAddChooser = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        elevation = FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 6.dp
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Expense")
+                    }
                 }
             }
-        ) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                topBar = {
-                    TopAppBar(
-                        title = { Text(currentDestination.label) },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        actions = {
-                            IconButton(onClick = { showAddChooser = true }) {
-                                Icon(Icons.Default.Add, contentDescription = "Add Expense")
-                            }
-                        }
-                    )
-                }
-            ) { innerPadding ->
-                Column(modifier = Modifier.padding(innerPadding)) {
-                    when (currentDestination) {
+        ) { innerPadding ->
+            AnimatedContent(
+                targetState = currentDestination,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "page_transition"
+            ) { destination ->
+                Box(modifier = Modifier.padding(innerPadding)) {
+                    when (destination) {
                         AppDestinations.STATISTICS -> GraphsPage()
                         AppDestinations.HOME -> MainPage(
                             expenses = expenses,
@@ -271,11 +285,92 @@ fun MyApplicationApp(
     }
 }
 
+@Composable
+private fun AddChooserDialog(
+    onDismiss: () -> Unit,
+    onScanReceipt: () -> Unit,
+    onAddManually: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = MaterialTheme.shapes.large
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Add Expense",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Choose how to add your expense",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(
+                    onClick = onScanReceipt,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                ) {
+                    Icon(
+                        Icons.Outlined.DocumentScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Scan Receipt", fontWeight = FontWeight.Medium)
+                }
+                Button(
+                    onClick = onAddManually,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add Manually", fontWeight = FontWeight.Medium)
+                }
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
 enum class AppDestinations(
     val label: String,
     val icon: ImageVector,
+    val selectedIcon: ImageVector,
 ) {
-    STATISTICS("Statistics", Icons.Default.Info),
-    HOME("Home", Icons.Default.Home),
-    PROFILE("Profile", Icons.Default.AccountBox),
+    STATISTICS("Statistics", Icons.Outlined.InsertChart, Icons.Filled.InsertChart),
+    HOME("Home", Icons.Outlined.Home, Icons.Filled.Home),
+    PROFILE("Profile", Icons.Outlined.Person, Icons.Filled.Person),
 }

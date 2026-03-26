@@ -211,33 +211,102 @@ fun GraphsPage(
         }
     }
 
-    // Trend Data (Filtered by category if selected, always based on 'now' for comparison)
-    val (trendPoints1, trendPoints2) = remember(expenses, selectedCategory) {
-        val now = LocalDate.now()
-        val last14Days = (0..13).map { now.minusDays(it.toLong()) }
-        val currentWeek = last14Days.take(7).reversed()
-        val previousWeek = last14Days.takeLast(7).reversed()
-
-        val p1 = currentWeek.map { date ->
-            expenses.filter {
-                try {
-                    val d = LocalDate.parse(it.date.substring(0, 10))
-                    d == date && (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true))
-                } catch (e: Exception) { false }
-            }.sumOf { it.amount }.toFloat()
+    // Trend Data (Comparison based on currentPivotDate and timeGroup)
+    val (trendPoints1, trendPoints2, trendSubtitle) = remember(expenses, selectedCategory, timeGroup, currentPivotDate) {
+        val (p1, p2, sub) = when (timeGroup) {
+            TimeGroup.DAY -> {
+                val dates1 = (0..6).map { currentPivotDate.minusDays(it.toLong()) }.reversed()
+                val dates2 = (7..13).map { currentPivotDate.minusDays(it.toLong()) }.reversed()
+                val v1 = dates1.map { date ->
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            d == date && (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true))
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                val v2 = dates2.map { date ->
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            d == date && (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true))
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                Triple(v1, v2, "Current 7 Days vs Previous 7 Days")
+            }
+            TimeGroup.WEEK -> {
+                val weeks1 = (0..3).map { currentPivotDate.minusWeeks(it.toLong()) }.reversed()
+                val weeks2 = (4..7).map { currentPivotDate.minusWeeks(it.toLong()) }.reversed()
+                val v1 = weeks1.map { dateInWeek ->
+                    val start = dateInWeek.with(weekFields.dayOfWeek(), 1)
+                    val end = start.plusDays(6)
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true)) && !d.isBefore(start) && !d.isAfter(end)
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                val v2 = weeks2.map { dateInWeek ->
+                    val start = dateInWeek.with(weekFields.dayOfWeek(), 1)
+                    val end = start.plusDays(6)
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true)) && !d.isBefore(start) && !d.isAfter(end)
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                Triple(v1, v2, "Current 4 Weeks vs Previous 4 Weeks")
+            }
+            TimeGroup.MONTH -> {
+                val months1 = (0..5).map { currentPivotDate.minusMonths(it.toLong()) }.reversed()
+                val months2 = (6..11).map { currentPivotDate.minusMonths(it.toLong()) }.reversed()
+                val v1 = months1.map { target ->
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true)) && d.month == target.month && d.year == target.year
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                val v2 = months2.map { target ->
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true)) && d.month == target.month && d.year == target.year
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                Triple(v1, v2, "Current 6 Months vs Previous 6 Months")
+            }
+            TimeGroup.YEAR -> {
+                val years1 = (0..4).map { currentPivotDate.minusYears(it.toLong()) }.reversed()
+                val years2 = (5..9).map { currentPivotDate.minusYears(it.toLong()) }.reversed()
+                val v1 = years1.map { target ->
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true)) && d.year == target.year
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                val v2 = years2.map { target ->
+                    expenses.filter {
+                        try {
+                            val d = LocalDate.parse(it.date.substring(0, 10))
+                            (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true)) && d.year == target.year
+                        } catch (e: Exception) { false }
+                    }.sumOf { it.amount }.toFloat()
+                }
+                Triple(v1, v2, "Current 5 Years vs Previous 5 Years")
+            }
         }
-        val p2 = previousWeek.map { date ->
-            expenses.filter {
-                try {
-                    val d = LocalDate.parse(it.date.substring(0, 10))
-                    d == date && (selectedCategory == null || it.category.equals(selectedCategory, ignoreCase = true))
-                } catch (e: Exception) { false }
-            }.sumOf { it.amount }.toFloat()
-        }
-        p1 to p2
+        Triple(p1, p2, sub)
     }
 
-    val trendXValues = (1..7).map { it * 10 }
+    val trendXValues = (1..trendPoints1.size).map { it * 10 }
     val maxTrend = (trendPoints1 + trendPoints2).maxOrNull() ?: 100f
     val trendYValues = List(5) { (it * (maxTrend / 4)).toInt() }
 
@@ -471,7 +540,7 @@ fun GraphsPage(
 
         ChartCard(
             title = "Spending Trends",
-            subtitle = "Current week vs Previous week",
+            subtitle = trendSubtitle,
             icon = Icons.Outlined.AutoGraph
         ) {
             BezierCurve(

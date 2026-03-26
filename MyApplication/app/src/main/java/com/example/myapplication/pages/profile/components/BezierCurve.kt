@@ -1,7 +1,6 @@
 package com.example.myapplication.pages.profile.components
 
 import android.graphics.Paint
-import android.graphics.PathMeasure
 import android.graphics.PointF
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -14,14 +13,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.asAndroidPath
-import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEachIndexed
 
 @Composable
 fun BezierCurve(
@@ -30,131 +27,109 @@ fun BezierCurve(
     yValues: List<Int>,
     points: List<Float>,
     points2: List<Float>,
-    interval: Int
+    interval: Int,
+    line1Color: Color = MaterialTheme.colorScheme.primary,
+    line2Color: Color = MaterialTheme.colorScheme.secondary
 ) {
     val animationProgress = remember { Animatable(0f) }
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val dotColor = MaterialTheme.colorScheme.tertiary
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(points, points2) {
+        animationProgress.snapTo(0f)
         animationProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(2000)
+            animationSpec = tween(1000)
         )
     }
 
     Canvas(
         modifier = modifier
-            .padding(12.dp)
+            .padding(horizontal = 24.dp, vertical = 24.dp)
             .fillMaxSize()
     ) {
         val textPaint = Paint().apply {
-            textSize = 22f
+            textSize = 24f
             color = textColor.toArgb()
             isAntiAlias = true
+            textAlign = Paint.Align.CENTER
         }
 
-        val maxX = xValuesInt.max()
+        val maxX = xValuesInt.maxOrNull()?.toFloat() ?: 1f
         val xSpacing = size.width / maxX
 
-        val maxY = yValues.max()
-        val ySpacing = size.height / maxY
+        val maxY = yValues.maxOrNull()?.toFloat() ?: 100f
+        val ySpacing = if (maxY > 0) size.height / maxY else 0f
 
-        for (index in 0..maxX step interval) {
-            drawContext.canvas.nativeCanvas.drawText(
-                if (index == 0) "" else (index / 10).toString(),
-                xSpacing * index,
-                size.height,
-                textPaint
-            )
+        // Draw X Axis Labels
+        for (index in 0..maxX.toInt() step interval) {
+            val label = if (index == 0) "" else (index / 10).toString()
+            if (label.isNotEmpty()) {
+                drawContext.canvas.nativeCanvas.drawText(
+                    label,
+                    xSpacing * index,
+                    size.height + 35f,
+                    textPaint
+                )
+            }
         }
 
-        for (index in 0..maxY step interval) {
+        // Draw Y Axis Labels
+        val yTextPaint = Paint().apply {
+            textSize = 24f
+            color = textColor.toArgb()
+            isAntiAlias = true
+            textAlign = Paint.Align.RIGHT
+        }
+        for (index in 0..maxY.toInt() step interval) {
             drawContext.canvas.nativeCanvas.drawText(
-                if (index == 0) "" else index.toString(),
-                0f,
-                size.height - (ySpacing * index),
-                textPaint
+                index.toString(),
+                -15f,
+                size.height - (ySpacing * index) + 8f,
+                yTextPaint
             )
         }
 
         val pointsList = listOf(points, points2)
-        val colors = listOf(primaryColor, secondaryColor)
+        val colors = listOf(line1Color, line2Color)
 
         pointsList.forEachIndexed { listIndex, pts ->
+            if (pts.isEmpty()) return@forEachIndexed
+            
             val coordinates = mutableListOf<PointF>()
 
-            pts.fastForEachIndexed { index, value ->
+            pts.forEachIndexed { index, value ->
+                if (index >= xValuesInt.size) return@forEachIndexed
                 val x = xSpacing * xValuesInt[index]
-                val y = size.height - (ySpacing * value)
+                val y = size.height - (ySpacing * (value * animationProgress.value))
 
                 coordinates.add(PointF(x, y))
                 drawCircle(
-                    dotColor.copy(alpha = 0.6f),
+                    colors[listIndex].copy(alpha = 0.6f),
                     radius = 5f,
                     center = Offset(x, y)
                 )
             }
 
-            val controlPoints = calculateControlPoints(coordinates)
+            if (coordinates.size < 2) return@forEachIndexed
 
-            val path1 = Path().apply {
-                reset()
+            val path = Path().apply {
                 moveTo(coordinates.first().x, coordinates.first().y)
-                for (point in 1 until coordinates.size) {
-                    val controlPoint = controlPoints[point - 1]
+                for (i in 1 until coordinates.size) {
+                    val prev = coordinates[i - 1]
+                    val curr = coordinates[i]
                     cubicTo(
-                        controlPoint.first.x, controlPoint.first.y,
-                        controlPoint.second.x, controlPoint.second.y,
-                        coordinates[point].x, coordinates[point].y
+                        prev.x + (curr.x - prev.x) / 2, prev.y,
+                        prev.x + (curr.x - prev.x) / 2, curr.y,
+                        curr.x, curr.y
                     )
                 }
             }
 
-            val pathMeasure = PathMeasure(path1.asAndroidPath(), false)
-            val animationPath = android.graphics.Path()
-
-            pathMeasure.getSegment(
-                0f,
-                pathMeasure.length * animationProgress.value,
-                animationPath,
-                true
-            )
-
             drawPath(
-                Path().apply { addPath(animationPath.asComposePath()) },
+                path = path,
                 color = colors[listIndex],
-                style = Stroke(width = 6f)
+                style = Stroke(width = 5f)
             )
         }
     }
-}
-
-fun calculateControlPoints(points: MutableList<PointF>): List<Pair<PointF, PointF>> {
-    val controlPoints = mutableListOf<Pair<PointF, PointF>>()
-    for (i in 1 until points.size) {
-        val previous = points[i - 1]
-        val current = points[i]
-        val next = points.getOrNull(i + 1)
-
-        val c1 = PointF(
-            previous.x + (current.x - previous.x) / 3,
-            previous.y + (current.y - previous.y) / 3
-        )
-        val c2 = next?.let {
-            PointF(
-                current.x - (next.x - previous.x) / 3f,
-                current.y - (next.y - previous.y) / 3
-            )
-        } ?: run {
-            PointF(
-                previous.x - (current.x - previous.x) / 3,
-                previous.y - (current.y - previous.y) / 3
-            )
-        }
-        controlPoints.add(Pair(c1, c2))
-    }
-    return controlPoints
 }

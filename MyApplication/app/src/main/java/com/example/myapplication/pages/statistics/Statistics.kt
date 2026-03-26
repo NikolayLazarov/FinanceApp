@@ -552,6 +552,8 @@ fun GraphsPage(
                 interval = if (trendYValues.size > 1) (trendYValues[1] - trendYValues[0]).coerceAtLeast(1) else 10,
                 points = trendPoints1,
                 points2 = trendPoints2,
+                line1Color = if (selectedCategory != null) getCategoryColor(selectedCategory) else MaterialTheme.colorScheme.primary,
+                line2Color = if (selectedCategory != null) getCategoryColor(selectedCategory).copy(alpha = 0.3f) else MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
             )
         }
 

@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -27,12 +28,11 @@ fun BarChart(
     yValues: List<Int>,
     points: List<Float>,
     interval: Int,
-    highlightIndex: Int? = null
+    barColors: List<Color> = emptyList()
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val highlightColor = MaterialTheme.colorScheme.tertiary
-    val containerColor = MaterialTheme.colorScheme.primaryContainer
-    val onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    val onContainerColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Animation state for the bars
     val animationProgress = remember { Animatable(0f) }
@@ -48,7 +48,7 @@ fun BarChart(
         contentAlignment = Alignment.Center
     ) {
         val textPaint = Paint().apply {
-            textSize = 30f
+            textSize = 24f
             color = onContainerColor.toArgb()
             textAlign = Paint.Align.CENTER
         }
@@ -66,18 +66,20 @@ fun BarChart(
             val ySpacing = if (maxY > 0) canvasHeight.div(maxY) else canvasHeight
 
             // Draw X Axis Labels
-            xValues.forEachIndexed { index, day ->
-                drawContext.canvas.nativeCanvas.drawText(
-                    day,
-                    xSpacing * index,
-                    canvasHeight + 40f,
-                    textPaint
-                )
+            xValues.forEachIndexed { index, label ->
+                if (label.isNotEmpty()) {
+                    drawContext.canvas.nativeCanvas.drawText(
+                        label,
+                        xSpacing * index,
+                        canvasHeight + 40f,
+                        textPaint
+                    )
+                }
             }
 
             // Draw Y Axis Labels
             val yTextPaint = Paint().apply {
-                textSize = 30f
+                textSize = 24f
                 color = onContainerColor.toArgb()
                 textAlign = Paint.Align.RIGHT
             }
@@ -85,24 +87,33 @@ fun BarChart(
                 drawContext.canvas.nativeCanvas.drawText(
                     value.toString(),
                     -15f,
-                    canvasHeight - (ySpacing * value) + 10f,
+                    canvasHeight - (ySpacing * value) + 8f,
                     yTextPaint
                 )
             }
 
             // Draw Bars
             points.forEachIndexed { index, value ->
+                if (index == 0 && xValues.firstOrNull() == "") return@forEachIndexed // Skip padding point if exists
+                
                 val x = xSpacing * index
                 val animatedValue = value * animationProgress.value
                 val y = canvasHeight - (ySpacing * animatedValue)
 
-                val color = if (index == highlightIndex) highlightColor else primaryColor
+                // Use provided color if available, otherwise fallback
+                val color = if (index - 1 < barColors.size && index > 0) {
+                    barColors[index - 1]
+                } else if (index < barColors.size) {
+                    barColors[index]
+                } else {
+                    primaryColor
+                }
 
                 drawLine(
                     color = color,
                     start = Offset(x, canvasHeight),
                     end = Offset(x, y),
-                    strokeWidth = 30f,
+                    strokeWidth = (xSpacing * 0.5f).coerceIn(10f, 40f),
                     cap = StrokeCap.Round
                 )
             }

@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -111,8 +112,8 @@ class MainActivity : ComponentActivity() {
             val authError by authViewModel.error.collectAsState()
             val userInfo by authViewModel.userInfo.collectAsState()
 
-            // DEBUG BYPASS
-            var bypassAuth by remember { mutableStateOf(false) }
+            // DEBUG BYPASS persisted across rotation
+            var bypassAuth by rememberSaveable { mutableStateOf(false) }
 
             LaunchedEffect(isLoggedIn) {
                 if (isLoggedIn) {
@@ -164,6 +165,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         },
+                        onUpdateExpense = { request ->
+                            mainViewModel.updateExpense(request)
+                        },
                         onLogout = { 
                             if (bypassAuth) bypassAuth = false
                             else authViewModel.logout() 
@@ -186,6 +190,7 @@ fun MyApplicationApp(
     onCategoryChange: (String?) -> Unit = {},
     onDarkModeChange: (Boolean?) -> Unit = {},
     onAddExpense: (CreateExpenseRequest) -> Unit = {},
+    onUpdateExpense: (CreateExpenseRequest) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val pagerState = rememberPagerState(initialPage = AppDestinations.HOME.ordinal) {
@@ -302,7 +307,8 @@ fun MyApplicationApp(
                         selectedCategory = selectedCategory,
                         userInfo = userInfo,
                         onTimeGroupChange = onTimeGroupChange,
-                        onCategoryChange = onCategoryChange
+                        onCategoryChange = onCategoryChange,
+                        onUpdateExpense = onUpdateExpense
                     )
                     AppDestinations.PROFILE -> Profile(
                         userInfo = userInfo,

@@ -9,6 +9,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,6 +100,10 @@ class MainActivity : ComponentActivity() {
             val expenses by mainViewModel.expenses.collectAsState()
             val timeGroup by mainViewModel.timeGroup.collectAsState()
             val selectedCategory by mainViewModel.selectedCategory.collectAsState()
+            val isDarkModeOverride by mainViewModel.isDarkMode.collectAsState()
+
+            // Resolve actual theme: Use override if set, otherwise follow system
+            val darkTheme = isDarkModeOverride ?: isSystemInDarkTheme()
 
             val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
             val isRestoringSession by authViewModel.isRestoringSession.collectAsState()
@@ -112,7 +117,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            MyApplicationTheme(darkTheme = false) {
+            MyApplicationTheme(darkTheme = darkTheme) {
                 if (isRestoringSession) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -141,8 +146,10 @@ class MainActivity : ComponentActivity() {
                         timeGroup = timeGroup,
                         selectedCategory = selectedCategory,
                         userInfo = userInfo,
+                        isDarkMode = darkTheme,
                         onTimeGroupChange = { mainViewModel.setTimeGroup(it) },
                         onCategoryChange = { mainViewModel.setSelectedCategory(it) },
+                        onDarkModeChange = { mainViewModel.setDarkMode(it) },
                         onAddExpense = { request ->
                             mainViewModel.addExpense(request) { deductedAmount ->
                                 val current = userInfo
@@ -167,8 +174,10 @@ fun MyApplicationApp(
     timeGroup: TimeGroup = TimeGroup.DAY,
     selectedCategory: String? = null,
     userInfo: LoginResult? = null,
+    isDarkMode: Boolean = false,
     onTimeGroupChange: (TimeGroup) -> Unit = {},
     onCategoryChange: (String?) -> Unit = {},
+    onDarkModeChange: (Boolean?) -> Unit = {},
     onAddExpense: (CreateExpenseRequest) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -283,6 +292,8 @@ fun MyApplicationApp(
                         )
                         AppDestinations.PROFILE -> Profile(
                             userInfo = userInfo,
+                            isDarkMode = isDarkMode,
+                            onDarkModeChange = onDarkModeChange,
                             onLogout = onLogout
                         )
                     }

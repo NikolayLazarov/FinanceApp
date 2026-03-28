@@ -25,6 +25,9 @@ class MainViewModel : ViewModel() {
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory = _selectedCategory.asStateFlow()
 
+    private val _isDarkMode = MutableStateFlow<Boolean?>(null) // null means follow system
+    val isDarkMode = _isDarkMode.asStateFlow()
+
     fun loadData() {
         _isLoading.value = true
         viewModelScope.launch {
@@ -44,6 +47,10 @@ class MainViewModel : ViewModel() {
 
     fun setSelectedCategory(category: String?) {
         _selectedCategory.value = category
+    }
+
+    fun setDarkMode(enabled: Boolean?) {
+        _isDarkMode.value = enabled
     }
 
     fun addExpense(expense: CreateExpenseRequest, onAllowanceDeducted: (Double) -> Unit) {

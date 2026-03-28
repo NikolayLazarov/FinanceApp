@@ -1,6 +1,7 @@
 package com.example.myapplication.pages.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -35,8 +40,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.models.CreateExpenseRequest
 import com.example.myapplication.models.LoginResult
 import com.example.myapplication.models.Product
+import com.example.myapplication.pages.main.components.AddExpenseDialog
 import com.example.myapplication.view.TimeGroup
 import java.time.LocalDate
 import java.time.temporal.WeekFields
@@ -55,8 +62,11 @@ fun MainPage(
     userInfo: LoginResult? = null,
     onTimeGroupChange: (TimeGroup) -> Unit = {},
     onCategoryChange: (String?) -> Unit = {},
+    onUpdateExpense: (CreateExpenseRequest) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var editingExpense by remember { mutableStateOf<Product?>(null) }
+
     val filteredExpenses = if (selectedCategory != null) {
         expenses.filter { it.category.equals(selectedCategory, ignoreCase = true) }
     } else {
@@ -65,6 +75,17 @@ fun MainPage(
 
     val grouped = groupExpenses(filteredExpenses, timeGroup)
     val totalSpent = expenses.sumOf { it.amount }
+
+    if (editingExpense != null) {
+        AddExpenseDialog(
+            expenseToEdit = editingExpense,
+            onDismiss = { editingExpense = null },
+            onConfirm = { request ->
+                onUpdateExpense(request)
+                editingExpense = null
+            }
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -258,7 +279,7 @@ fun MainPage(
                     )
                 }
                 items(expensesInGroup, key = { it.id }) { expense ->
-                    ExpenseRow(expense)
+                    ExpenseRow(expense, onClick = { editingExpense = expense })
                 }
             }
         }
@@ -311,7 +332,7 @@ private fun FinanceCard(
 }
 
 @Composable
-private fun ExpenseRow(expense: Product) {
+private fun ExpenseRow(expense: Product, onClick: () -> Unit) {
     val categoryIcon = getCategoryEmoji(expense.category)
     val formattedDate = try {
         val ld = LocalDate.parse(expense.date.substring(0, 10))
@@ -323,7 +344,8 @@ private fun ExpenseRow(expense: Product) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
+            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),

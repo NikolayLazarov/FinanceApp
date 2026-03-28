@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.myapplication.models.CreateExpenseRequest
+import com.example.myapplication.models.Product
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,16 +56,24 @@ private val expenseCategories = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseDialog(
+    expenseToEdit: Product? = null,
     onDismiss: () -> Unit,
     onConfirm: (CreateExpenseRequest) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var selectedCategoryIndex by remember { mutableIntStateOf(0) }
+    var title by remember { mutableStateOf(expenseToEdit?.title ?: "") }
+    var amount by remember { mutableStateOf(expenseToEdit?.amount?.toString() ?: "") }
+    var selectedCategoryIndex by remember {
+        mutableIntStateOf(
+            if (expenseToEdit != null) {
+                val index = expenseCategories.indexOfFirst { it.equals(expenseToEdit.category, ignoreCase = true) }
+                if (index != -1) index else 0
+            } else 0
+        )
+    }
     var categoryExpanded by remember { mutableStateOf(false) }
     var date by remember {
         mutableStateOf(
-            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            expenseToEdit?.date?.take(10) ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         )
     }
 
@@ -92,13 +101,13 @@ fun AddExpenseDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "New Expense",
+                    text = if (expenseToEdit == null) "New Expense" else "Edit Expense",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Track a new spending",
+                    text = if (expenseToEdit == null) "Track a new spending" else "Update your spending details",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -214,6 +223,7 @@ fun AddExpenseDialog(
                         onClick = {
                             onConfirm(
                                 CreateExpenseRequest(
+                                    id = expenseToEdit?.id,
                                     title = title,
                                     category = expenseCategories[selectedCategoryIndex],
                                     date = date,
@@ -227,7 +237,10 @@ fun AddExpenseDialog(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("Save Expense", fontWeight = FontWeight.Medium)
+                        Text(
+                            text = if (expenseToEdit == null) "Save Expense" else "Update Expense",
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }

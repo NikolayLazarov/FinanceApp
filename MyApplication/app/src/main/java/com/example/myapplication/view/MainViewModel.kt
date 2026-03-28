@@ -67,6 +67,20 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun updateExpense(expense: CreateExpenseRequest) {
+        viewModelScope.launch {
+            try {
+                // Using the existing createExpense endpoint as it seems to be CreateOrUpdate
+                val response = RetrofitClient.apiService.createExpense(expense)
+                if (response.isSuccessful) {
+                    _expenses.value = RetrofitClient.apiService.getExpenses()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun updateAllowance(dailyAllowance: Double, savings: Double) {
         viewModelScope.launch {
             try {

@@ -5,10 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.DocumentScanner
@@ -53,8 +51,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -76,6 +75,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.view.AuthViewModel
 import com.example.myapplication.view.MainViewModel
 import com.example.myapplication.view.TimeGroup
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
@@ -188,7 +188,11 @@ fun MyApplicationApp(
     onAddExpense: (CreateExpenseRequest) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    val pagerState = rememberPagerState(initialPage = AppDestinations.HOME.ordinal) {
+        AppDestinations.entries.size
+    }
+    val scope = rememberCoroutineScope()
+    
     var showScanner by remember { mutableStateOf(false) }
     var showAddChooser by remember { mutableStateOf(false) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
@@ -232,7 +236,7 @@ fun MyApplicationApp(
                     tonalElevation = 0.dp
                 ) {
                     AppDestinations.entries.forEach { destination ->
-                        val selected = destination == currentDestination
+                        val selected = destination.ordinal == pagerState.currentPage
                         NavigationBarItem(
                             icon = {
                                 Icon(
@@ -248,7 +252,11 @@ fun MyApplicationApp(
                                 )
                             },
                             selected = selected,
-                            onClick = { currentDestination = destination },
+                            onClick = { 
+                                scope.launch {
+                                    pagerState.animateScrollToPage(destination.ordinal)
+                                }
+                            },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -261,7 +269,7 @@ fun MyApplicationApp(
                 }
             },
             floatingActionButton = {
-                if (currentDestination == AppDestinations.HOME) {
+                if (pagerState.currentPage == AppDestinations.HOME.ordinal) {
                     FloatingActionButton(
                         onClick = { showAddChooser = true },
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -275,35 +283,33 @@ fun MyApplicationApp(
                 }
             }
         ) { innerPadding ->
-            AnimatedContent(
-                targetState = currentDestination,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "page_transition"
-            ) { destination ->
-                Box(modifier = Modifier.padding(innerPadding)) {
-                    when (destination) {
-                        AppDestinations.STATISTICS -> GraphsPage(
-                            expenses = expenses,
-                            timeGroup = timeGroup,
-                            selectedCategory = selectedCategory,
-                            onTimeGroupChange = onTimeGroupChange,
-                            onCategoryChange = onCategoryChange
-                        )
-                        AppDestinations.HOME -> MainPage(
-                            expenses = expenses,
-                            timeGroup = timeGroup,
-                            selectedCategory = selectedCategory,
-                            userInfo = userInfo,
-                            onTimeGroupChange = onTimeGroupChange,
-                            onCategoryChange = onCategoryChange
-                        )
-                        AppDestinations.PROFILE -> Profile(
-                            userInfo = userInfo,
-                            isDarkMode = isDarkMode,
-                            onDarkModeChange = onDarkModeChange,
-                            onLogout = onLogout
-                        )
-                    }
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.padding(innerPadding),
+                beyondViewportPageCount = 2
+            ) { page ->
+                when (AppDestinations.entries[page]) {
+                    AppDestinations.STATISTICS -> GraphsPage(
+                        expenses = expenses,
+                        timeGroup = timeGroup,
+                        selectedCategory = selectedCategory,
+                        onTimeGroupChange = onTimeGroupChange,
+                        onCategoryChange = onCategoryChange
+                    )
+                    AppDestinations.HOME -> MainPage(
+                        expenses = expenses,
+                        timeGroup = timeGroup,
+                        selectedCategory = selectedCategory,
+                        userInfo = userInfo,
+                        onTimeGroupChange = onTimeGroupChange,
+                        onCategoryChange = onCategoryChange
+                    )
+                    AppDestinations.PROFILE -> Profile(
+                        userInfo = userInfo,
+                        isDarkMode = isDarkMode,
+                        onDarkModeChange = onDarkModeChange,
+                        onLogout = onLogout
+                    )
                 }
             }
         }

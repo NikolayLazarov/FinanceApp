@@ -59,7 +59,8 @@ fun AuthPage(
     error: String?,
     onSignIn: (email: String, password: String) -> Unit,
     onSignUp: (firstName: String, lastName: String, age: Int, gender: Int, email: String, password: String) -> Unit,
-    onClearError: () -> Unit
+    onClearError: () -> Unit,
+    onBypass: () -> Unit // BYPASS CALLBACK
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
@@ -339,6 +340,26 @@ fun AuthPage(
                     fontWeight = FontWeight.Medium
                 )
             }
+
+            // START BYPASS SECTION (Easy to delete)
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = "Debug Options",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            TextButton(
+                onClick = onBypass,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = "Bypass Authentication (Developer Mode)",
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            // END BYPASS SECTION
 
             Spacer(modifier = Modifier.height(32.dp))
         }

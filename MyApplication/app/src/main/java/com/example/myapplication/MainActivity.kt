@@ -111,6 +111,9 @@ class MainActivity : ComponentActivity() {
             val authError by authViewModel.error.collectAsState()
             val userInfo by authViewModel.userInfo.collectAsState()
 
+            // DEBUG BYPASS
+            var bypassAuth by remember { mutableStateOf(false) }
+
             LaunchedEffect(isLoggedIn) {
                 if (isLoggedIn) {
                     mainViewModel.loadData()
@@ -122,7 +125,7 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
-                } else if (!isLoggedIn) {
+                } else if (!isLoggedIn && !bypassAuth) {
                     AuthPage(
                         isLoading = authLoading,
                         error = authError,
@@ -134,15 +137,16 @@ class MainActivity : ComponentActivity() {
                                 authViewModel.signIn(email, password)
                             }
                         },
-                        onClearError = { authViewModel.clearError() }
+                        onClearError = { authViewModel.clearError() },
+                        onBypass = { bypassAuth = true }
                     )
-                } else if (isLoading) {
+                } else if (isLoading && !bypassAuth) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
                     MyApplicationApp(
-                        expenses = expenses,
+                        expenses = if (bypassAuth) DummyData.dummyExpenses else expenses,
                         timeGroup = timeGroup,
                         selectedCategory = selectedCategory,
                         userInfo = userInfo,
@@ -160,7 +164,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         },
-                        onLogout = { authViewModel.logout() }
+                        onLogout = { 
+                            if (bypassAuth) bypassAuth = false
+                            else authViewModel.logout() 
+                        }
                     )
                 }
             }

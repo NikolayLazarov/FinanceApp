@@ -56,22 +56,15 @@ android {
 }
 
 dependencies {
-//    val vicoVersion = "2.0.0-alpha.22" // Използвайте една и съща версия за всички
-
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1");
-    implementation("io.coil-kt:coil-compose:2.5.0")
-
 
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     implementation("androidx.compose.ui:ui-text-google-fonts:1.10.5")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("io.github.ehsannarmani:compose-charts:0.2.5")
 
-// За viewModelScope (ако ползваш ViewModel - силно препоръчително
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
 
-// За конвертиране на JSON
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")

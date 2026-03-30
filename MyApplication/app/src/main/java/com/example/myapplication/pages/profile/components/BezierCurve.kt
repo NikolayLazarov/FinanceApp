@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -29,10 +30,12 @@ fun BezierCurve(
     points2: List<Float>,
     interval: Int,
     line1Color: Color = MaterialTheme.colorScheme.primary,
-    line2Color: Color = MaterialTheme.colorScheme.secondary
+    line2Color: Color = MaterialTheme.colorScheme.secondary,
+    labels: List<String> = emptyList()
 ) {
     val animationProgress = remember { Animatable(0f) }
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
 
     LaunchedEffect(points, points2) {
         animationProgress.snapTo(0f)
@@ -60,20 +63,31 @@ fun BezierCurve(
         val maxY = yValues.maxOrNull()?.toFloat() ?: 100f
         val ySpacing = if (maxY > 0) size.height / maxY else 0f
 
-        // Draw X Axis Labels
-        for (index in 0..maxX.toInt() step interval) {
-            val label = if (index == 0) "" else (index / 10).toString()
-            if (label.isNotEmpty()) {
+        // Draw Vertical Grid Lines and X Labels
+        xValuesInt.forEachIndexed { index, xVal ->
+            val x = xSpacing * xVal
+            
+            // Modern dashed grid lines using Compose PathEffect
+            drawLine(
+                color = gridColor,
+                start = Offset(x, 0f),
+                end = Offset(x, size.height),
+                strokeWidth = 2f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+            )
+
+            // Dynamic Labels
+            if (index < labels.size) {
                 drawContext.canvas.nativeCanvas.drawText(
-                    label,
-                    xSpacing * index,
+                    labels[index],
+                    x,
                     size.height + 35f,
                     textPaint
                 )
             }
         }
 
-        // Draw Y Axis Labels
+        // Draw Horizontal Grid Lines and Y Axis Labels
         val yTextPaint = Paint().apply {
             textSize = 24f
             color = textColor.toArgb()
@@ -81,10 +95,20 @@ fun BezierCurve(
             textAlign = Paint.Align.RIGHT
         }
         for (index in 0..maxY.toInt() step interval) {
+            val y = size.height - (ySpacing * index)
+            
+            // Horizontal grid line
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1f
+            )
+
             drawContext.canvas.nativeCanvas.drawText(
                 index.toString(),
                 -15f,
-                size.height - (ySpacing * index) + 8f,
+                y + 8f,
                 yTextPaint
             )
         }
@@ -103,9 +127,16 @@ fun BezierCurve(
                 val y = size.height - (ySpacing * (value * animationProgress.value))
 
                 coordinates.add(PointF(x, y))
+                
+                // Draw sophisticated dots
                 drawCircle(
-                    colors[listIndex].copy(alpha = 0.6f),
-                    radius = 5f,
+                    color = Color.White,
+                    radius = 6f,
+                    center = Offset(x, y)
+                )
+                drawCircle(
+                    color = colors[listIndex],
+                    radius = 4f,
                     center = Offset(x, y)
                 )
             }
@@ -128,7 +159,7 @@ fun BezierCurve(
             drawPath(
                 path = path,
                 color = colors[listIndex],
-                style = Stroke(width = 5f)
+                style = Stroke(width = 6f)
             )
         }
     }

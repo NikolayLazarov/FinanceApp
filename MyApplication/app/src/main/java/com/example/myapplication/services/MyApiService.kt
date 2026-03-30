@@ -10,6 +10,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface MyApiService {
     // Auth
@@ -34,6 +35,9 @@ interface MyApiService {
 
     @POST("Expenses/CreateOrUpdateExpense")
     suspend fun createExpense(@Body request: CreateExpenseRequest): Response<Unit>
+
+    @POST("Expenses/DeleteExpense")
+    suspend fun deleteExpense(@Query("id") id: Int): Response<Unit>
 
     @POST("Expenses/UpdateDailyAllowance")
     suspend fun updateDailyAllowance(@Body request: UpdateAllowanceRequest): Response<Unit>

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.TrendingDown
 import androidx.compose.material3.Card
@@ -26,6 +27,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +65,7 @@ fun MainPage(
     onTimeGroupChange: (TimeGroup) -> Unit = {},
     onCategoryChange: (String?) -> Unit = {},
     onUpdateExpense: (CreateExpenseRequest) -> Unit = {},
+    onDeleteExpense: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var editingExpense by remember { mutableStateOf<Product?>(null) }
@@ -279,7 +282,11 @@ fun MainPage(
                     )
                 }
                 items(expensesInGroup, key = { it.id }) { expense ->
-                    ExpenseRow(expense, onClick = { editingExpense = expense })
+                    ExpenseRow(
+                        expense = expense,
+                        onClick = { editingExpense = expense },
+                        onDelete = { onDeleteExpense(expense.id) }
+                    )
                 }
             }
         }
@@ -332,7 +339,11 @@ private fun FinanceCard(
 }
 
 @Composable
-private fun ExpenseRow(expense: Product, onClick: () -> Unit) {
+private fun ExpenseRow(
+    expense: Product,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
     val categoryIcon = getCategoryEmoji(expense.category)
     val formattedDate = try {
         val ld = LocalDate.parse(expense.date.substring(0, 10))
@@ -395,6 +406,21 @@ private fun ExpenseRow(expense: Product, onClick: () -> Unit) {
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.error
             )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Delete button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

@@ -212,11 +212,12 @@ fun GraphsPage(
     }
 
     // Trend Data (Comparison based on currentPivotDate and timeGroup)
-    val (trendPoints1, trendPoints2, trendSubtitle) = remember(expenses, selectedCategory, timeGroup, currentPivotDate) {
-        val (p1, p2, sub) = when (timeGroup) {
+    val trendData = remember(expenses, selectedCategory, timeGroup, currentPivotDate) {
+        when (timeGroup) {
             TimeGroup.DAY -> {
                 val dates1 = (0..6).map { currentPivotDate.minusDays(it.toLong()) }.reversed()
                 val dates2 = (7..13).map { currentPivotDate.minusDays(it.toLong()) }.reversed()
+                val labels = dates1.map { it.dayOfWeek.name.take(3) }
                 val v1 = dates1.map { date ->
                     expenses.filter {
                         try {
@@ -233,11 +234,12 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                Triple(v1, v2, "Current 7 Days vs Previous 7 Days")
+                TrendData(v1, v2, "Current 7 Days vs Previous 7 Days", labels)
             }
             TimeGroup.WEEK -> {
                 val weeks1 = (0..3).map { currentPivotDate.minusWeeks(it.toLong()) }.reversed()
                 val weeks2 = (4..7).map { currentPivotDate.minusWeeks(it.toLong()) }.reversed()
+                val labels = weeks1.map { "W${it.get(weekFields.weekOfWeekBasedYear())}" }
                 val v1 = weeks1.map { dateInWeek ->
                     val start = dateInWeek.with(weekFields.dayOfWeek(), 1)
                     val end = start.plusDays(6)
@@ -258,11 +260,12 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                Triple(v1, v2, "Current 4 Weeks vs Previous 4 Weeks")
+                TrendData(v1, v2, "Current 4 Weeks vs Previous 4 Weeks", labels)
             }
             TimeGroup.MONTH -> {
                 val months1 = (0..5).map { currentPivotDate.minusMonths(it.toLong()) }.reversed()
                 val months2 = (6..11).map { currentPivotDate.minusMonths(it.toLong()) }.reversed()
+                val labels = months1.map { it.month.name.take(3) }
                 val v1 = months1.map { target ->
                     expenses.filter {
                         try {
@@ -279,11 +282,12 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                Triple(v1, v2, "Current 6 Months vs Previous 6 Months")
+                TrendData(v1, v2, "Current 6 Months vs Previous 6 Months", labels)
             }
             TimeGroup.YEAR -> {
                 val years1 = (0..4).map { currentPivotDate.minusYears(it.toLong()) }.reversed()
                 val years2 = (5..9).map { currentPivotDate.minusYears(it.toLong()) }.reversed()
+                val labels = years1.map { it.year.toString().takeLast(2) }
                 val v1 = years1.map { target ->
                     expenses.filter {
                         try {
@@ -300,14 +304,13 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                Triple(v1, v2, "Current 5 Years vs Previous 5 Years")
+                TrendData(v1, v2, "Current 5 Years vs Previous 5 Years", labels)
             }
         }
-        Triple(p1, p2, sub)
     }
 
-    val trendXValues = (1..trendPoints1.size).map { it * 10 }
-    val maxTrend = (trendPoints1 + trendPoints2).maxOrNull() ?: 100f
+    val trendXValues = (1..trendData.p1.size).map { it * 10 }
+    val maxTrend = (trendData.p1 + trendData.p2).maxOrNull() ?: 100f
     val trendYValues = List(5) { (it * (maxTrend / 4)).toInt() }
 
     Column(
@@ -540,7 +543,7 @@ fun GraphsPage(
 
         ChartCard(
             title = "Spending Trends",
-            subtitle = trendSubtitle,
+            subtitle = trendData.subtitle,
             icon = Icons.Outlined.AutoGraph
         ) {
             BezierCurve(
@@ -550,16 +553,24 @@ fun GraphsPage(
                 xValuesInt = trendXValues,
                 yValues = trendYValues,
                 interval = if (trendYValues.size > 1) (trendYValues[1] - trendYValues[0]).coerceAtLeast(1) else 10,
-                points = trendPoints1,
-                points2 = trendPoints2,
+                points = trendData.p1,
+                points2 = trendData.p2,
                 line1Color = if (selectedCategory != null) getCategoryColor(selectedCategory) else MaterialTheme.colorScheme.primary,
-                line2Color = if (selectedCategory != null) getCategoryColor(selectedCategory).copy(alpha = 0.3f) else MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                line2Color = if (selectedCategory != null) getCategoryColor(selectedCategory).copy(alpha = 0.3f) else MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+                labels = trendData.labels
             )
         }
 
         Spacer(modifier = Modifier.height(100.dp))
     }
 }
+
+private data class TrendData(
+    val p1: List<Float>,
+    val p2: List<Float>,
+    val subtitle: String,
+    val labels: List<String>
+)
 
 private fun getPeriodLabel(date: LocalDate, timeGroup: TimeGroup): String {
     val weekFields = WeekFields.of(Locale.getDefault())

@@ -45,9 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.models.Product
+import com.example.myapplication.models.TimeGroup
 import com.example.myapplication.pages.statistics.components.BarChart
 import com.example.myapplication.pages.profile.components.BezierCurve
-import com.example.myapplication.view.TimeGroup
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields

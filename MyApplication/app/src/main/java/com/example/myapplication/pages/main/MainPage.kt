@@ -37,15 +37,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.models.CreateExpenseRequest
 import com.example.myapplication.models.LoginResult
 import com.example.myapplication.models.Product
+import com.example.myapplication.models.TimeGroup
 import com.example.myapplication.pages.main.components.AddExpenseDialog
 import com.example.myapplication.pages.main.components.FinanceCard
-import com.example.myapplication.view.TimeGroup
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale

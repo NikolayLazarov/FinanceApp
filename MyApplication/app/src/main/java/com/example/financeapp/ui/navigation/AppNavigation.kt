@@ -29,7 +29,7 @@ import com.example.financeapp.ui.features.main.components.AddExpenseDialog
 import com.example.financeapp.ui.features.profile.Profile
 import com.example.financeapp.ui.features.statistics.GraphsPage
 import com.example.financeapp.ui.features.scanner.Scanner
-import com.example.financeapp.ui.theme.MyApplicationTheme
+import com.example.financeapp.ui.theme.FinanceAppTheme
 import kotlinx.coroutines.launch
 
 @Composable
@@ -59,7 +59,7 @@ fun AppNavigation(
         }
     }
 
-    MyApplicationTheme(darkTheme = darkTheme) {
+    FinanceAppTheme(darkTheme = darkTheme) {
         if (isRestoringSession) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)

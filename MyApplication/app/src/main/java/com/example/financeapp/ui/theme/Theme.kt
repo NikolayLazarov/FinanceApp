@@ -94,7 +94,7 @@ private val AppShapes = Shapes(
 )
 
 @Composable
-fun MyApplicationTheme(
+fun FinanceAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

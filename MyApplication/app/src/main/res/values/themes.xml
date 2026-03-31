@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MyApplication.Starting" parent="Theme.SplashScreen">
+    <style name="Theme.FinanceApp.Starting" parent="Theme.SplashScreen">
         <!-- Background color of the splash screen -->
         <item name="windowSplashScreenBackground">@color/white</item>
         <!-- Your logo (Vector Drawable) -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/logo </item>
         <!-- Theme to use after the splash screen is dismissed -->
-        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
+        <item name="postSplashScreenTheme">@style/Theme.FinanceApp</item>
     </style>
 
 
-    <style name="Theme.MyApplication" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.FinanceApp" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

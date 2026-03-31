@@ -14,11 +14,10 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 
 @Composable
-fun RemainingBlock(modifier: Modifier = Modifier) {
-    val dailyLimit = 100.0
-    val spentAmount = 34.50
-    val remaining = dailyLimit - spentAmount
-
+fun RemainingBlock(
+    remaining: Double,
+    modifier: Modifier = Modifier
+) {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
         shape = MaterialTheme.shapes.large,

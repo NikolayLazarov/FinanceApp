@@ -56,21 +56,18 @@ android {
 }
 
 dependencies {
-    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1");
+    implementation(libs.play.services.mlkit.document.scanner)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.compose.ui.text.google.fonts)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.google.code.gson)
+    implementation(libs.squareup.retrofit2)
+    implementation(libs.squareup.retrofit2.converter.gson)
+    implementation(libs.squareup.okhttp3)
+    implementation(libs.jetbrains.kotlinx.coroutines.android)
+    implementation(libs.jetbrains.kotlinx.coroutines.core)
 
-    implementation("androidx.core:core-splashscreen:1.0.1")
-
-    implementation("androidx.compose.ui:ui-text-google-fonts:1.10.5")
-    implementation("androidx.compose.material:material-icons-extended")
-
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
-
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.squareup.retrofit2:retrofit:3.0.0")
-    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
-    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

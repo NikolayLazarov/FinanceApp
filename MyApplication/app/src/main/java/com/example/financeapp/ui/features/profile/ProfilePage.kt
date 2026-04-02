@@ -4,11 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.financeapp.data.model.LoginResult
 
@@ -24,6 +26,7 @@ fun Profile(
     userInfo: LoginResult?,
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean?) -> Unit,
+    onUpdateBudgetAndSavings: (dailyAllowance: Double, savings: Double) -> Unit = { _, _ -> },
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -32,6 +35,33 @@ fun Profile(
         .filter { it.isNotBlank() }
         .take(2)
         .joinToString("") { it.first().uppercase() }
+
+    var showBudgetDialog by remember { mutableStateOf(false) }
+    var showSavingsDialog by remember { mutableStateOf(false) }
+
+    if (showBudgetDialog) {
+        EditAmountDialog(
+            title = "Change Daily Budget",
+            currentValue = userInfo?.dailyAllowance ?: 0.0,
+            onDismiss = { showBudgetDialog = false },
+            onConfirm = { newBudget ->
+                onUpdateBudgetAndSavings(newBudget, userInfo?.savings ?: 0.0)
+                showBudgetDialog = false
+            }
+        )
+    }
+
+    if (showSavingsDialog) {
+        EditAmountDialog(
+            title = "Add to Savings",
+            currentValue = userInfo?.savings ?: 0.0,
+            onDismiss = { showSavingsDialog = false },
+            onConfirm = { newSavings ->
+                onUpdateBudgetAndSavings(userInfo?.dailyAllowance ?: 0.0, newSavings)
+                showSavingsDialog = false
+            }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -111,6 +141,52 @@ fun Profile(
                 ),
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = { showBudgetDialog = true },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Change Budget", style = MaterialTheme.typography.labelMedium)
+            }
+            OutlinedButton(
+                onClick = { showSavingsDialog = true },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Icon(
+                    Icons.Outlined.Savings,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Add Savings", style = MaterialTheme.typography.labelMedium)
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -322,4 +398,47 @@ private fun FinanceStatCard(
             )
         }
     }
+}
+
+@Composable
+private fun EditAmountDialog(
+    title: String,
+    currentValue: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var amountText by remember { mutableStateOf(String.format("%.2f", currentValue)) }
+    val isValid = amountText.toDoubleOrNull() != null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(title, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = { amountText = it },
+                label = { Text("Amount") },
+                prefix = { Text("$") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                isError = !isValid && amountText.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { amountText.toDoubleOrNull()?.let { onConfirm(it) } },
+                enabled = isValid
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

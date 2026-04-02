@@ -17,9 +17,12 @@ class FinanceRepository {
     
     suspend fun createExpense(expense: CreateExpenseRequest): Response<Unit> = api.createExpense(expense)
     
-    suspend fun deleteExpense(id: Int): Response<Unit> = api.deleteExpense(id)
+    suspend fun deleteExpense(id: Int): Response<Unit> = api.deleteExpense(DeleteExpenseRequest(id))
     
     suspend fun updateDailyAllowance(request: UpdateAllowanceRequest): Response<Unit> = api.updateDailyAllowance(request)
     
     suspend fun revoke(): Response<Unit> = api.revoke()
+
+    suspend fun refreshDailyBudget(request: RefreshDailyBudgetRequest): Response<RefreshDailyBudgetResponse> =
+        api.refreshDailyBudget(request)
 }

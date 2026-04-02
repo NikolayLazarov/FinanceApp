@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.financeapp.data.local.TokenManager
 import com.example.financeapp.data.model.LoginRequest
 import com.example.financeapp.data.model.LoginResult
+import com.example.financeapp.data.model.RefreshDailyBudgetRequest
 import com.example.financeapp.data.model.RegisterRequest
 import com.example.financeapp.data.remote.RetrofitClient
 import com.example.financeapp.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class AuthViewModel(private val repository: FinanceRepository = FinanceRepository()) : ViewModel() {
     private val _isLoggedIn = MutableStateFlow(false)
@@ -57,6 +59,7 @@ class AuthViewModel(private val repository: FinanceRepository = FinanceRepositor
                     }
                 }
 
+                refreshDailyBudgetIfNeeded()
                 _isLoggedIn.value = true
             } catch (_: Exception) {
                 TokenManager.clear()
@@ -79,6 +82,7 @@ class AuthViewModel(private val repository: FinanceRepository = FinanceRepositor
                     TokenManager.token = result.token
                     TokenManager.userInfo = result
                     _userInfo.value = result
+                    refreshDailyBudgetIfNeeded()
                     _isLoggedIn.value = true
                 } else {
                     _error.value = response.errorBody()?.string() ?: "Login failed"
@@ -143,5 +147,34 @@ class AuthViewModel(private val repository: FinanceRepository = FinanceRepositor
         )
         _userInfo.value = updated
         TokenManager.userInfo = updated
+    }
+
+    private suspend fun refreshDailyBudgetIfNeeded() {
+        val today = LocalDate.now().toString()
+        val lastRefresh = TokenManager.lastBudgetRefreshDate
+
+        if (lastRefresh == today) return
+
+        try {
+            val response = repository.refreshDailyBudget(
+                RefreshDailyBudgetRequest(lastRefreshDate = lastRefresh ?: "")
+            )
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    val updated = _userInfo.value?.copy(dailyAllowance = body.dailyAllowance)
+                    _userInfo.value = updated
+                    TokenManager.userInfo = updated
+                    TokenManager.lastBudgetRefreshDate = body.lastRefreshDate
+                }
+            }
+        } catch (_: Exception) {
+            // If refresh fails, just update the local date so we don't spam the endpoint
+        }
+
+        // Always mark today as refreshed locally so budget resets even if API is down
+        if (TokenManager.lastBudgetRefreshDate != today) {
+            TokenManager.lastBudgetRefreshDate = today
+        }
     }
 }

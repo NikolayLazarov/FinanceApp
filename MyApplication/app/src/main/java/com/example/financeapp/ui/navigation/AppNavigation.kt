@@ -95,16 +95,21 @@ fun AppNavigation(
                     mainViewModel.addExpense(request) { deductedAmount ->
                         val current = userInfo
                         if (current != null) {
-                            val newAllowance = (current.dailyAllowance - deductedAmount).coerceAtLeast(0.0)
+                            val newAllowance = current.dailyAllowance - deductedAmount
                             authViewModel.updateAllowance(newAllowance, current.savings)
                             mainViewModel.updateAllowance(newAllowance, current.savings)
                         }
                     }
                 },
                 onUpdateExpense = { mainViewModel.updateExpense(it) },
-                onLogout = { 
+                onDeleteExpense = { mainViewModel.deleteExpense(it) },
+                onUpdateBudgetAndSavings = { newBudget, newSavings ->
+                    authViewModel.updateAllowance(newBudget, newSavings)
+                    mainViewModel.updateAllowance(newBudget, newSavings)
+                },
+                onLogout = {
                     if (bypassAuth) bypassAuth = false
-                    else authViewModel.logout() 
+                    else authViewModel.logout()
                 }
             )
         }
@@ -123,6 +128,8 @@ fun MyApplicationApp(
     onDarkModeChange: (Boolean?) -> Unit = {},
     onAddExpense: (CreateExpenseRequest) -> Unit = {},
     onUpdateExpense: (CreateExpenseRequest) -> Unit = {},
+    onDeleteExpense: (Int) -> Unit = {},
+    onUpdateBudgetAndSavings: (Double, Double) -> Unit = { _, _ -> },
     onLogout: () -> Unit = {}
 ) {
     val pagerState = rememberPagerState(initialPage = AppDestinations.HOME.ordinal) {
@@ -240,12 +247,14 @@ fun MyApplicationApp(
                         userInfo = userInfo,
                         onTimeGroupChange = onTimeGroupChange,
                         onCategoryChange = onCategoryChange,
-                        onUpdateExpense = onUpdateExpense
+                        onUpdateExpense = onUpdateExpense,
+                        onDeleteExpense = onDeleteExpense
                     )
                     AppDestinations.PROFILE -> Profile(
                         userInfo = userInfo,
                         isDarkMode = isDarkMode,
                         onDarkModeChange = onDarkModeChange,
+                        onUpdateBudgetAndSavings = onUpdateBudgetAndSavings,
                         onLogout = onLogout
                     )
                 }

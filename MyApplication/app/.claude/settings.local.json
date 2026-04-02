@@ -8,7 +8,12 @@
       "Bash(grep -r \"SharedPreferences\\\\|DataStore\\\\|Token\\\\|Auth\\\\|Preference\" /c/Users/vikto/source/repos/FinanceApp/MyApplication/app/src/main/java --include=*.kt)",
       "Bash(xargs ls:*)",
       "Read(//c/Users/vikto/source/repos/FinanceApp/MyApplication/**)",
-      "Bash(./gradlew :app:compileDebugKotlin)"
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files/Android/Android Studio//**)",
+      "Read(//c/Users/vikto/source/repos/FinanceApp/MyApplication/app/$LOCALAPPDATA/**)",
+      "Bash(reg query:*)",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")"
     ]
   }
 }

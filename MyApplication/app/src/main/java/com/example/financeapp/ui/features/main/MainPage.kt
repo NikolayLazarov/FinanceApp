@@ -42,6 +42,7 @@ fun MainPage(
     modifier: Modifier = Modifier
 ) {
     var editingExpense by remember { mutableStateOf<Product?>(null) }
+    var expenseToDelete by remember { mutableStateOf<Product?>(null) }
 
     val filteredExpenses = if (selectedCategory != null) {
         expenses.filter { it.category.equals(selectedCategory, ignoreCase = true) }
@@ -51,6 +52,40 @@ fun MainPage(
 
     val grouped = groupExpenses(filteredExpenses, timeGroup)
     val totalSpent = expenses.sumOf { it.amount }
+
+    if (expenseToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { expenseToDelete = null },
+            title = {
+                Text(
+                    "Delete Expense",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Are you sure you want to delete \"${expenseToDelete!!.title}\"? This action cannot be undone.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteExpense(expenseToDelete!!.id)
+                        expenseToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { expenseToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (editingExpense != null) {
         AddExpenseDialog(
@@ -252,7 +287,7 @@ fun MainPage(
                     ExpenseRow(
                         expense = expense,
                         onClick = { editingExpense = expense },
-                        onDelete = { onDeleteExpense(expense.id) }
+                        onDelete = { expenseToDelete = expense }
                     )
                 }
             }

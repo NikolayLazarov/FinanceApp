@@ -34,7 +34,7 @@ object DummyData {
                         category = category,
                         date = date.atTime((8..22).random(), (0..59).random()).format(formatter),
                         amount = amount,
-                        userId = "dummy"
+                        creatorUserId = "dummy"
                     )
                 )
             }

@@ -1,6 +1,7 @@
 import io
 import re
 import cv2
+import httpx
 import numpy as np
 import pytesseract
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -9,27 +10,34 @@ from PIL import Image
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-app = FastAPI(title="OCR Service", description="Invoice/receipt OCR processing")
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = "gemma3:4b"
+
+app = FastAPI(title="OCR Service", description="Invoice/receipt OCR processing with LLM correction")
 
 
-# --- Image Preprocessing (from main.py) ---
+# --- Image Preprocessing optimized for Bulgarian receipts ---
 
 def grayscale(image):
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
 def noise_removal(image):
+    image = cv2.medianBlur(image, 3)
     kernel = np.ones((1, 1), np.uint8)
     image = cv2.dilate(image, kernel, iterations=1)
     image = cv2.erode(image, kernel, iterations=1)
     image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
-    image = cv2.medianBlur(image, 3)
     return image
 
 
 def threshold_image(gray_image):
-    _, im_bw = cv2.threshold(gray_image, 210, 230, cv2.THRESH_BINARY)
-    return im_bw
+    return cv2.adaptiveThreshold(
+        gray_image, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        31, 10
+    )
 
 
 def get_skew_angle(cv_image) -> float:
@@ -71,6 +79,23 @@ def deskew(cv_image):
     return rotate_image(cv_image, -1.0 * angle)
 
 
+def resize_for_ocr(image, target_dpi=300):
+    """Upscale small images to improve OCR accuracy."""
+    h, w = image.shape[:2]
+    if max(h, w) < 1500:
+        scale = 2.0
+        image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    return image
+
+
+def sharpen_image(image):
+    """Apply sharpening to make text edges crisper."""
+    kernel = np.array([[-1, -1, -1],
+                       [-1,  9, -1],
+                       [-1, -1, -1]])
+    return cv2.filter2D(image, -1, kernel)
+
+
 def remove_borders(image):
     contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
@@ -83,12 +108,65 @@ def remove_borders(image):
 
 
 def preprocess_image(img: np.ndarray) -> np.ndarray:
+    img = resize_for_ocr(img)
     deskewed = deskew(img)
     gray_image = grayscale(deskewed)
+    gray_image = sharpen_image(gray_image)
     bw_image = threshold_image(gray_image)
     no_noise = noise_removal(bw_image)
     no_borders = remove_borders(no_noise)
     return no_borders
+
+
+# --- Tesseract OCR for Bulgarian receipts ---
+
+def ocr_image(pil_image: Image.Image) -> str:
+    """Run Tesseract with Bulgarian + English config optimized for receipts."""
+    custom_config = (
+        "--oem 3 "          # LSTM neural net engine
+        "--psm 6 "          # Assume a single uniform block of text
+        "-l bul+eng "       # Bulgarian primary, English fallback (for numbers/brands)
+        "-c preserve_interword_spaces=1"
+    )
+    return pytesseract.image_to_string(pil_image, config=custom_config)
+
+
+# --- LLM Correction via Ollama ---
+
+async def correct_text_with_llm(raw_text: str) -> str:
+    """Send OCR text to local Ollama model for correction."""
+    prompt = (
+        "You are an OCR post-processor for Bulgarian store receipts. "
+        "The following text was extracted via OCR from a Bulgarian receipt photo and may contain errors.\n\n"
+        "Your task:\n"
+        "1. Fix OCR misreadings in Bulgarian text (wrong Cyrillic characters, broken words)\n"
+        "2. Keep all numbers and prices EXACTLY as they are - do NOT change any digits or decimal values\n"
+        "3. Keep the original line structure\n"
+        "4. Do NOT add any commentary, explanation or extra text\n"
+        "5. Return ONLY the corrected receipt text, nothing else\n\n"
+        f"OCR Text:\n{raw_text}"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.1,
+                        "num_predict": 2048,
+                    }
+                }
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result.get("response", raw_text).strip()
+    except Exception as e:
+        print(f"LLM correction failed, returning raw OCR text: {e}")
+        return raw_text
 
 
 # --- Receipt Parsing ---
@@ -101,7 +179,10 @@ def parse_receipt_text(raw_text: str) -> dict:
     store_name = lines[0] if lines else None
 
     price_pattern = re.compile(r"(\d+[.,]\d{2})\s*$")
-    total_pattern = re.compile(r"(total|totaal|suma|gesamt|zusammen|subtotal)", re.IGNORECASE)
+    total_pattern = re.compile(
+        r"(total|totaal|suma|gesamt|zusammen|subtotal|общо|тотал|всичко|сума|дължима)",
+        re.IGNORECASE
+    )
 
     for line in lines:
         if total_pattern.search(line):
@@ -143,10 +224,14 @@ async def process_receipt(file: UploadFile = File(...)):
     processed = preprocess_image(img)
 
     pil_image = Image.fromarray(processed)
-    raw_text = pytesseract.image_to_string(pil_image)
+    raw_text = ocr_image(pil_image)
 
-    parsed = parse_receipt_text(raw_text)
+    # Correct OCR text with local LLM
+    corrected_text = await correct_text_with_llm(raw_text)
+
+    parsed = parse_receipt_text(corrected_text)
     parsed["raw_text"] = raw_text
+    parsed["corrected_text"] = corrected_text
 
     return JSONResponse(content=parsed)
 

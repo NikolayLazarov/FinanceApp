@@ -167,7 +167,10 @@ fun MyApplicationApp(
 
     if (showScanner) {
         Scanner(
-            onSave = { _ -> showScanner = false },
+            onSave = { expenses ->
+                expenses.forEach { onAddExpense(it) }
+                showScanner = false
+            },
             onCancel = { showScanner = false }
         )
     } else {

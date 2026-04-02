@@ -7,6 +7,7 @@ namespace Finance.Models.DTOs
         public decimal? Total { get; set; }
         public int ItemCount { get; set; }
         public string? RawText { get; set; }
+        public string? CorrectedText { get; set; }
     }
 
     public class OcrReceiptItem

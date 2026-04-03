@@ -15,7 +15,8 @@
       "Bash(reg query:*)",
       "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
       "Bash(grep -E \"\\\\.\\(cs|kt\\)$\")",
-      "Bash(.venv/Scripts/pip install:*)"
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(curl -s http://localhost:11434/api/tags)"
     ]
   }
 }

@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.financeapp.data.model.CreateExpenseRequest
-import com.example.financeapp.data.model.OcrReceiptItem
 import com.example.financeapp.data.model.OcrReceiptResult
 import com.example.financeapp.data.repository.FinanceRepository
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
@@ -37,6 +36,11 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.LocalDate
 
+private val expenseCategories = listOf(
+    "Food", "Transportation", "Utilities", "Healthcare", "Education",
+    "Entertainment", "Shopping", "Travel", "Finance", "Other"
+)
+
 @Composable
 fun Scanner(
     onSave: (List<CreateExpenseRequest>) -> Unit,
@@ -50,6 +54,7 @@ fun Scanner(
     var isUploading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var ocrResult by remember { mutableStateOf<OcrReceiptResult?>(null) }
+    var selectedCategoryIndex by remember { mutableIntStateOf(expenseCategories.indexOf("Shopping")) }
 
     // Editable items derived from OCR result
     var editableItems by remember { mutableStateOf<List<EditableReceiptItem>>(emptyList()) }
@@ -173,7 +178,7 @@ fun Scanner(
                     if (item.name.isNotBlank() && price != null && price > 0) {
                         CreateExpenseRequest(
                             title = item.name,
-                            category = "Shopping",
+                            category = expenseCategories[selectedCategoryIndex],
                             date = today,
                             amount = price
                         )
@@ -181,11 +186,14 @@ fun Scanner(
                 }
                 onSave(expenses)
             },
+            selectedCategoryIndex = selectedCategoryIndex,
+            onCategorySelected = { selectedCategoryIndex = it },
             onCancel = onCancel
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OcrReviewScreen(
     ocrResult: OcrReceiptResult,
@@ -193,8 +201,12 @@ private fun OcrReviewScreen(
     onItemChange: (Int, EditableReceiptItem) -> Unit,
     onItemDelete: (Int) -> Unit,
     onConfirm: () -> Unit,
+    selectedCategoryIndex: Int,
+    onCategorySelected: (Int) -> Unit,
     onCancel: () -> Unit
 ) {
+    var categoryExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             Row(
@@ -222,6 +234,36 @@ private fun OcrReviewScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     val totalPrice = editableItems.sumOf { it.price.toDoubleOrNull() ?: 0.0 }
+                    ExposedDropdownMenuBox(
+                        expanded = categoryExpanded,
+                        onExpandedChange = { categoryExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = expenseCategories[selectedCategoryIndex],
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Category") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoryExpanded,
+                            onDismissRequest = { categoryExpanded = false }
+                        ) {
+                            expenseCategories.forEachIndexed { index, label ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        onCategorySelected(index)
+                                        categoryExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -350,7 +392,9 @@ private fun EditableItemRow(
                     value = item.name,
                     onValueChange = onNameChange,
                     label = { Text("Item name") },
-                    singleLine = true,
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 4,
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodyMedium
                 )

@@ -161,6 +161,10 @@ fun MyApplicationApp(
             onConfirm = { request ->
                 onAddExpense(request)
                 showAddExpenseDialog = false
+            },
+            onConfirmMultiple = { requests ->
+                requests.forEach { onAddExpense(it) }
+                showAddExpenseDialog = false
             }
         )
     }

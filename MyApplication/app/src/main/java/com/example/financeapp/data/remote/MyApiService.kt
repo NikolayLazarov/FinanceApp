@@ -1,10 +1,13 @@
 package com.example.financeapp.data.remote
 
 import com.example.financeapp.data.model.*
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface MyApiService {
     @POST("Authentication/SignIn")
@@ -36,4 +39,8 @@ interface MyApiService {
 
     @POST("Expenses/RefreshDailyBudget")
     suspend fun refreshDailyBudget(@Body request: RefreshDailyBudgetRequest): Response<RefreshDailyBudgetResponse>
+
+    @Multipart
+    @POST("Ocr/ScanReceipt")
+    suspend fun scanReceipt(@Part file: MultipartBody.Part): Response<OcrReceiptResult>
 }

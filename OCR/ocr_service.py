@@ -475,7 +475,7 @@ def parse_receipt_text(raw_text: str) -> dict:
         r"|\*{3,}|-{3,}|={3,}|\d{4}-\d{2}-\d{2}|\d{2}:\d{2}:\d{2})",
         re.IGNORECASE
     )
-    price_pattern = re.compile(r"(\d+[.,]\d{2})\s*[A-Za-z\u0410-\u044f]?\s*$", re.IGNORECASE)
+    price_pattern = re.compile(r"(\d+[.,]\d{2})\s*(?:[A-Za-z\u0410-\u044f]{0,3}\.?)?\s*$", re.IGNORECASE)
     leva_total_pattern = re.compile(r"(\u043b\u0435\u0432\u0430|\u043b\u0432\.?|bgn|leva)", re.IGNORECASE)
     euro_total_pattern = re.compile(r"(\u0435\u0432\u0440\u043e|eur|euro|ebpo)", re.IGNORECASE)
 
@@ -523,7 +523,7 @@ def parse_items_only_text(raw_text: str) -> dict:
     lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
     items = []
     price_pattern = re.compile(
-        r"(?P<price>(?:\d+[.,]\d{2}|[.,]\d{2}))\s*(?:[A-Za-z\u0410-\u044f]{0,3})?\s*$",
+        r"(?P<price>(?:\d+[.,]\d{2}|[.,]\d{2}))\s*(?:[A-Za-z\u0410-\u044f]{0,3}\.?)?\s*$",
         re.IGNORECASE,
     )
 

@@ -140,6 +140,45 @@ fun MyApplicationApp(
     var showScanner by remember { mutableStateOf(false) }
     var showAddChooser by remember { mutableStateOf(false) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var showBudgetPrompt by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userInfo) {
+        val allowance = userInfo?.dailyAllowance ?: 0.0
+        val savings = userInfo?.savings ?: 0.0
+        if (allowance == 0.0 && savings == 0.0 && userInfo != null) {
+            showBudgetPrompt = true
+        }
+    }
+
+    if (showBudgetPrompt) {
+        AlertDialog(
+            onDismissRequest = { showBudgetPrompt = false },
+            title = {
+                Text(
+                    "Set Up Your Budget",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Your daily budget and savings are both set to \$0.00. Head to your Profile to set your daily budget and savings goals.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showBudgetPrompt = false
+                    scope.launch {
+                        pagerState.animateScrollToPage(AppDestinations.PROFILE.ordinal)
+                    }
+                }) {
+                    Text("Go to Profile")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBudgetPrompt = false }) {
+                    Text("Later")
+                }
+            }
+        )
+    }
 
     if (showAddChooser) {
         AddChooserDialog(

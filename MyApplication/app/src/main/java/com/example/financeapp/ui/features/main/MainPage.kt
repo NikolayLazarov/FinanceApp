@@ -134,7 +134,10 @@ fun MainPage(
                     title = "Daily Budget",
                     value = "$${String.format("%.2f", userInfo?.dailyAllowance ?: 0.0)}",
                     icon = Icons.Outlined.AccountBalanceWallet,
-                    gradientColors = listOf(
+                    gradientColors = if ((userInfo?.dailyAllowance ?: 0.0) < 0) listOf(
+                        MaterialTheme.colorScheme.error,
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    ) else listOf(
                         MaterialTheme.colorScheme.primary,
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     ),

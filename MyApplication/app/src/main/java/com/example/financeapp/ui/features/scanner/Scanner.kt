@@ -54,8 +54,6 @@ fun Scanner(
     var isUploading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var ocrResult by remember { mutableStateOf<OcrReceiptResult?>(null) }
-    var selectedCategoryIndex by remember { mutableIntStateOf(expenseCategories.indexOf("Shopping")) }
-
     // Editable items derived from OCR result
     var editableItems by remember { mutableStateOf<List<EditableReceiptItem>>(emptyList()) }
 
@@ -83,7 +81,7 @@ fun Scanner(
                             onSuccess = { ocrData ->
                                 ocrResult = ocrData
                                 editableItems = ocrData.items.map {
-                                    EditableReceiptItem(name = it.name, price = it.price.toString())
+                                    EditableReceiptItem(name = it.name, price = it.price.toString(), category = "Food")
                                 }
                                 isUploading = false
                             },
@@ -178,7 +176,7 @@ fun Scanner(
                     if (item.name.isNotBlank() && price != null && price > 0) {
                         CreateExpenseRequest(
                             title = item.name,
-                            category = expenseCategories[selectedCategoryIndex],
+                            category = item.category,
                             date = today,
                             amount = price
                         )
@@ -186,14 +184,11 @@ fun Scanner(
                 }
                 onSave(expenses)
             },
-            selectedCategoryIndex = selectedCategoryIndex,
-            onCategorySelected = { selectedCategoryIndex = it },
             onCancel = onCancel
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OcrReviewScreen(
     ocrResult: OcrReceiptResult,
@@ -201,12 +196,8 @@ private fun OcrReviewScreen(
     onItemChange: (Int, EditableReceiptItem) -> Unit,
     onItemDelete: (Int) -> Unit,
     onConfirm: () -> Unit,
-    selectedCategoryIndex: Int,
-    onCategorySelected: (Int) -> Unit,
     onCancel: () -> Unit
 ) {
-    var categoryExpanded by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             Row(
@@ -234,36 +225,6 @@ private fun OcrReviewScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     val totalPrice = editableItems.sumOf { it.price.toDoubleOrNull() ?: 0.0 }
-                    ExposedDropdownMenuBox(
-                        expanded = categoryExpanded,
-                        onExpandedChange = { categoryExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = expenseCategories[selectedCategoryIndex],
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Category") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false }
-                        ) {
-                            expenseCategories.forEachIndexed { index, label ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        onCategorySelected(index)
-                                        categoryExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -345,6 +306,7 @@ private fun OcrReviewScreen(
                     item = item,
                     onNameChange = { onItemChange(index, item.copy(name = it)) },
                     onPriceChange = { onItemChange(index, item.copy(price = it)) },
+                    onCategoryChange = { onItemChange(index, item.copy(category = it)) },
                     onDelete = { onItemDelete(index) }
                 )
             }
@@ -369,11 +331,13 @@ private fun OcrReviewScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditableItemRow(
     item: EditableReceiptItem,
     onNameChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
+    onCategoryChange: (String) -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -410,6 +374,38 @@ private fun EditableItemRow(
                     textStyle = MaterialTheme.typography.bodyMedium,
                     isError = item.price.isNotEmpty() && item.price.toDoubleOrNull() == null
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                var categoryExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = item.category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        expenseCategories.forEach { label ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    onCategoryChange(label)
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onDelete) {
@@ -461,5 +457,6 @@ private suspend fun uploadAndProcess(
 
 data class EditableReceiptItem(
     val name: String,
-    val price: String
+    val price: String,
+    val category: String = "Food"
 )

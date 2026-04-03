@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthPage(
     isLoading: Boolean,
@@ -38,6 +39,8 @@ fun AuthPage(
     var lastName by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
     var gender by remember { mutableIntStateOf(0) }
+    var genderExpanded by remember { mutableStateOf(false) }
+    val genderOptions = listOf("Male", "Female", "Other")
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -192,7 +195,44 @@ fun AuthPage(
                                 shape = MaterialTheme.shapes.small,
                                 colors = fieldColors
                             )
-                            Spacer(modifier = Modifier.height(0.dp))
+                            ExposedDropdownMenuBox(
+                                expanded = genderExpanded,
+                                onExpandedChange = { genderExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = genderOptions[gender],
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Gender") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.Person,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = fieldColors
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = genderExpanded,
+                                    onDismissRequest = { genderExpanded = false }
+                                ) {
+                                    genderOptions.forEachIndexed { index, label ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                gender = index
+                                                genderExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

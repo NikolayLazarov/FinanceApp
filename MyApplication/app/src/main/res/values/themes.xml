@@ -3,12 +3,11 @@
     <style name="Theme.FinanceApp.Starting" parent="Theme.SplashScreen">
         <!-- Background color of the splash screen -->
         <item name="windowSplashScreenBackground">@color/white</item>
-        <!-- Your logo (Vector Drawable) -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/logo </item>
+        <!-- Use the new launcher foreground as the splash icon -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <!-- Theme to use after the splash screen is dismissed -->
         <item name="postSplashScreenTheme">@style/Theme.FinanceApp</item>
     </style>
-
 
     <style name="Theme.FinanceApp" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

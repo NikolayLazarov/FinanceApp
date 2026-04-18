@@ -17,9 +17,10 @@ namespace FinanceAPI.DependencyInjection
         {
             services.AddHttpClient<IOcrService, OcrService>(client =>
             {
-                var baseUrl = configuration["OcrService:BaseUrl"] ?? "http://localhost:8000";
+                var baseUrl = configuration["OcrService:BaseUrl"] ?? "http://127.0.0.1:8000";
+                var timeoutSeconds = configuration.GetValue<int?>("OcrService:RequestTimeoutSeconds") ?? 90;
                 client.BaseAddress = new Uri(baseUrl);
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
             });
             return services;
         }

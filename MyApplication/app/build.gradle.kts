@@ -53,7 +53,6 @@ android {
 
 dependencies {
     implementation(libs.play.services.mlkit.document.scanner)
-    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -61,6 +60,7 @@ dependencies {
     implementation(libs.google.code.gson)
     implementation(libs.squareup.retrofit2)
     implementation(libs.squareup.retrofit2.converter.gson)
+    implementation(libs.squareup.retrofit2.converter.scalars)
     implementation(libs.squareup.okhttp3)
     implementation(libs.jetbrains.kotlinx.coroutines.android)
     implementation(libs.jetbrains.kotlinx.coroutines.core)

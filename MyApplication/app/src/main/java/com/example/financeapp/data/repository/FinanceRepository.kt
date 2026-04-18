@@ -2,6 +2,7 @@ package com.example.financeapp.data.repository
 
 import com.example.financeapp.data.model.*
 import com.example.financeapp.data.remote.RetrofitClient
+import okhttp3.MultipartBody
 import retrofit2.Response
 
 class FinanceRepository {
@@ -17,9 +18,15 @@ class FinanceRepository {
     
     suspend fun createExpense(expense: CreateExpenseRequest): Response<Unit> = api.createExpense(expense)
     
-    suspend fun deleteExpense(id: Int): Response<Unit> = api.deleteExpense(id)
+    suspend fun deleteExpense(id: Int): Response<Unit> = api.deleteExpense(DeleteExpenseRequest(id))
     
     suspend fun updateDailyAllowance(request: UpdateAllowanceRequest): Response<Unit> = api.updateDailyAllowance(request)
     
     suspend fun revoke(): Response<Unit> = api.revoke()
+
+    suspend fun refreshDailyBudget(request: RefreshDailyBudgetRequest): Response<RefreshDailyBudgetResponse> =
+        api.refreshDailyBudget(request)
+
+    suspend fun scanReceipt(filePart: MultipartBody.Part): Response<OcrReceiptResult> =
+        api.scanReceipt(filePart)
 }

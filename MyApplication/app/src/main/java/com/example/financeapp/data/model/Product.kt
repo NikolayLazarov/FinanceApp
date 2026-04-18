@@ -6,5 +6,5 @@ data class Product(
     val amount: Double,
     val date: String,
     val category: String,
-    val userId: String
+    val creatorUserId: String
 )

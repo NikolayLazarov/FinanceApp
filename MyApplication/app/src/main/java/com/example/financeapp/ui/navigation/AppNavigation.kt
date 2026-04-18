@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -29,6 +30,9 @@ import com.example.financeapp.ui.features.main.components.AddExpenseDialog
 import com.example.financeapp.ui.features.profile.Profile
 import com.example.financeapp.ui.features.statistics.GraphsPage
 import com.example.financeapp.ui.features.scanner.Scanner
+import com.example.financeapp.ui.localization.AppLanguage
+import com.example.financeapp.ui.localization.LocalStrings
+import com.example.financeapp.ui.localization.appStrings
 import com.example.financeapp.ui.theme.FinanceAppTheme
 import kotlinx.coroutines.launch
 
@@ -42,8 +46,10 @@ fun AppNavigation(
     val timeGroup by mainViewModel.timeGroup.collectAsState()
     val selectedCategory by mainViewModel.selectedCategory.collectAsState()
     val isDarkModeOverride by mainViewModel.isDarkMode.collectAsState()
+    val currentLanguage by mainViewModel.language.collectAsState()
 
     val darkTheme = isDarkModeOverride ?: isSystemInDarkTheme()
+    val strings = appStrings(currentLanguage)
 
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val isRestoringSession by authViewModel.isRestoringSession.collectAsState()
@@ -59,54 +65,63 @@ fun AppNavigation(
         }
     }
 
-    FinanceAppTheme(darkTheme = darkTheme) {
-        if (isRestoringSession) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        } else if (!isLoggedIn && !bypassAuth) {
-            AuthPage(
-                isLoading = authLoading,
-                error = authError,
-                onSignIn = { email, password -> authViewModel.signIn(email, password) },
-                onSignUp = { firstName, lastName, age, gender, email, password ->
-                    authViewModel.signUp(firstName, lastName, age, gender, email, password) {
-                        authViewModel.signIn(email, password)
-                    }
-                },
-                onClearError = { authViewModel.clearError() },
-                onBypass = { bypassAuth = true }
-            )
-        } else if (isLoading && !bypassAuth) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        } else {
-            MyApplicationApp(
-                expenses = if (bypassAuth) DummyData.dummyExpenses else expenses,
-                timeGroup = timeGroup,
-                selectedCategory = selectedCategory,
-                userInfo = userInfo,
-                isDarkMode = darkTheme,
-                onTimeGroupChange = { mainViewModel.setTimeGroup(it) },
-                onCategoryChange = { mainViewModel.setSelectedCategory(it) },
-                onDarkModeChange = { mainViewModel.setDarkMode(it) },
-                onAddExpense = { request ->
-                    mainViewModel.addExpense(request) { deductedAmount ->
-                        val current = userInfo
-                        if (current != null) {
-                            val newAllowance = (current.dailyAllowance - deductedAmount).coerceAtLeast(0.0)
-                            authViewModel.updateAllowance(newAllowance, current.savings)
-                            mainViewModel.updateAllowance(newAllowance, current.savings)
-                        }
-                    }
-                },
-                onUpdateExpense = { mainViewModel.updateExpense(it) },
-                onLogout = { 
-                    if (bypassAuth) bypassAuth = false
-                    else authViewModel.logout() 
+    CompositionLocalProvider(LocalStrings provides strings) {
+        FinanceAppTheme(darkTheme = darkTheme) {
+            if (isRestoringSession) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-            )
+            } else if (!isLoggedIn && !bypassAuth) {
+                AuthPage(
+                    isLoading = authLoading,
+                    error = authError,
+                    onSignIn = { email, password -> authViewModel.signIn(email, password) },
+                    onSignUp = { firstName, lastName, age, gender, email, password ->
+                        authViewModel.signUp(firstName, lastName, age, gender, email, password) {
+                            authViewModel.signIn(email, password)
+                        }
+                    },
+                    onClearError = { authViewModel.clearError() },
+                    onBypass = { bypassAuth = true }
+                )
+            } else if (isLoading && !bypassAuth) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            } else {
+                MyApplicationApp(
+                    expenses = if (bypassAuth) DummyData.dummyExpenses else expenses,
+                    timeGroup = timeGroup,
+                    selectedCategory = selectedCategory,
+                    userInfo = userInfo,
+                    isDarkMode = darkTheme,
+                    currentLanguage = currentLanguage,
+                    onTimeGroupChange = { mainViewModel.setTimeGroup(it) },
+                    onCategoryChange = { mainViewModel.setSelectedCategory(it) },
+                    onDarkModeChange = { mainViewModel.setDarkMode(it) },
+                    onLanguageChange = { mainViewModel.setLanguage(it) },
+                    onAddExpense = { request ->
+                        mainViewModel.addExpense(request) { deductedAmount ->
+                            val current = userInfo
+                            if (current != null) {
+                                val newAllowance = current.dailyAllowance - deductedAmount
+                                authViewModel.updateAllowance(newAllowance, current.savings)
+                                mainViewModel.updateAllowance(newAllowance, current.savings)
+                            }
+                        }
+                    },
+                    onUpdateExpense = { mainViewModel.updateExpense(it) },
+                    onDeleteExpense = { mainViewModel.deleteExpense(it) },
+                    onUpdateBudgetAndSavings = { newBudget, newSavings ->
+                        authViewModel.updateAllowance(newBudget, newSavings)
+                        mainViewModel.updateAllowance(newBudget, newSavings)
+                    },
+                    onLogout = {
+                        if (bypassAuth) bypassAuth = false
+                        else authViewModel.logout()
+                    }
+                )
+            }
         }
     }
 }
@@ -118,11 +133,15 @@ fun MyApplicationApp(
     selectedCategory: String? = null,
     userInfo: LoginResult? = null,
     isDarkMode: Boolean = false,
+    currentLanguage: AppLanguage = AppLanguage.ENGLISH,
     onTimeGroupChange: (TimeGroup) -> Unit = {},
     onCategoryChange: (String?) -> Unit = {},
     onDarkModeChange: (Boolean?) -> Unit = {},
+    onLanguageChange: (AppLanguage) -> Unit = {},
     onAddExpense: (CreateExpenseRequest) -> Unit = {},
     onUpdateExpense: (CreateExpenseRequest) -> Unit = {},
+    onDeleteExpense: (Int) -> Unit = {},
+    onUpdateBudgetAndSavings: (Double, Double) -> Unit = { _, _ -> },
     onLogout: () -> Unit = {}
 ) {
     val pagerState = rememberPagerState(initialPage = AppDestinations.HOME.ordinal) {
@@ -133,6 +152,47 @@ fun MyApplicationApp(
     var showScanner by remember { mutableStateOf(false) }
     var showAddChooser by remember { mutableStateOf(false) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var showBudgetPrompt by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userInfo) {
+        val allowance = userInfo?.dailyAllowance ?: 0.0
+        val savings = userInfo?.savings ?: 0.0
+        if (allowance == 0.0 && savings == 0.0 && userInfo != null) {
+            showBudgetPrompt = true
+        }
+    }
+
+    val strings = LocalStrings.current
+
+    if (showBudgetPrompt) {
+        AlertDialog(
+            onDismissRequest = { showBudgetPrompt = false },
+            title = {
+                Text(
+                    strings.setUpYourBudget,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(strings.budgetPromptMessage)
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showBudgetPrompt = false
+                    scope.launch {
+                        pagerState.animateScrollToPage(AppDestinations.PROFILE.ordinal)
+                    }
+                }) {
+                    Text(strings.goToProfile)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBudgetPrompt = false }) {
+                    Text(strings.later)
+                }
+            }
+        )
+    }
 
     if (showAddChooser) {
         AddChooserDialog(
@@ -154,13 +214,20 @@ fun MyApplicationApp(
             onConfirm = { request ->
                 onAddExpense(request)
                 showAddExpenseDialog = false
+            },
+            onConfirmMultiple = { requests ->
+                requests.forEach { onAddExpense(it) }
+                showAddExpenseDialog = false
             }
         )
     }
 
     if (showScanner) {
         Scanner(
-            onSave = { _ -> showScanner = false },
+            onSave = { expenses ->
+                expenses.forEach { onAddExpense(it) }
+                showScanner = false
+            },
             onCancel = { showScanner = false }
         )
     } else {
@@ -174,17 +241,22 @@ fun MyApplicationApp(
                 ) {
                     AppDestinations.entries.forEach { destination ->
                         val selected = destination.ordinal == pagerState.currentPage
+                        val navLabel = when (destination) {
+                            AppDestinations.STATISTICS -> strings.navStatistics
+                            AppDestinations.HOME -> strings.navHome
+                            AppDestinations.PROFILE -> strings.navProfile
+                        }
                         NavigationBarItem(
                             icon = {
                                 Icon(
                                     if (selected) destination.selectedIcon else destination.icon,
-                                    contentDescription = destination.label,
+                                    contentDescription = navLabel,
                                     modifier = Modifier.size(24.dp)
                                 )
                             },
                             label = {
                                 Text(
-                                    destination.label,
+                                    navLabel,
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             },
@@ -215,7 +287,7 @@ fun MyApplicationApp(
                             defaultElevation = 6.dp
                         )
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Expense")
+                        Icon(Icons.Default.Add, contentDescription = strings.addExpense)
                     }
                 }
             }
@@ -240,12 +312,16 @@ fun MyApplicationApp(
                         userInfo = userInfo,
                         onTimeGroupChange = onTimeGroupChange,
                         onCategoryChange = onCategoryChange,
-                        onUpdateExpense = onUpdateExpense
+                        onUpdateExpense = onUpdateExpense,
+                        onDeleteExpense = onDeleteExpense
                     )
                     AppDestinations.PROFILE -> Profile(
                         userInfo = userInfo,
                         isDarkMode = isDarkMode,
                         onDarkModeChange = onDarkModeChange,
+                        currentLanguage = currentLanguage,
+                        onLanguageChange = onLanguageChange,
+                        onUpdateBudgetAndSavings = onUpdateBudgetAndSavings,
                         onLogout = onLogout
                     )
                 }
@@ -260,6 +336,7 @@ private fun AddChooserDialog(
     onScanReceipt: () -> Unit,
     onAddManually: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -274,13 +351,13 @@ private fun AddChooserDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Add Expense",
+                    text = strings.addExpense,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Choose how to add your expense",
+                    text = strings.chooseHowToAdd,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -302,7 +379,7 @@ private fun AddChooserDialog(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Scan Receipt", fontWeight = FontWeight.Medium)
+                    Text(strings.scanReceipt, fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick = onAddManually,
@@ -321,13 +398,13 @@ private fun AddChooserDialog(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add Manually", fontWeight = FontWeight.Medium)
+                    Text(strings.addManually, fontWeight = FontWeight.Medium)
                 }
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(strings.cancel, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

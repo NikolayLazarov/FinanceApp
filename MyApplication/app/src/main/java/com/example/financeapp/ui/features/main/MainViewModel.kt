@@ -2,11 +2,13 @@ package com.example.financeapp.ui.features.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.financeapp.data.local.TokenManager
 import com.example.financeapp.data.model.CreateExpenseRequest
 import com.example.financeapp.data.model.Product
 import com.example.financeapp.data.model.TimeGroup
 import com.example.financeapp.data.model.UpdateAllowanceRequest
 import com.example.financeapp.data.repository.FinanceRepository
+import com.example.financeapp.ui.localization.AppLanguage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -26,6 +28,9 @@ class MainViewModel(private val repository: FinanceRepository = FinanceRepositor
 
     private val _isDarkMode = MutableStateFlow<Boolean?>(null)
     val isDarkMode = _isDarkMode.asStateFlow()
+
+    private val _language = MutableStateFlow(AppLanguage.ENGLISH)
+    val language = _language.asStateFlow()
 
     fun loadData() {
         _isLoading.value = true
@@ -50,6 +55,15 @@ class MainViewModel(private val repository: FinanceRepository = FinanceRepositor
 
     fun setDarkMode(enabled: Boolean?) {
         _isDarkMode.value = enabled
+    }
+
+    fun setLanguage(lang: AppLanguage) {
+        _language.value = lang
+        TokenManager.language = lang.code
+    }
+
+    fun loadLanguage() {
+        _language.value = AppLanguage.fromCode(TokenManager.language ?: "en")
     }
 
     fun addExpense(expense: CreateExpenseRequest, onAllowanceDeducted: (Double) -> Unit) {

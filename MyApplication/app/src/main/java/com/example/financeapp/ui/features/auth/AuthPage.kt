@@ -23,7 +23,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.financeapp.R
+import com.example.financeapp.ui.localization.LocalStrings
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthPage(
     isLoading: Boolean,
@@ -33,6 +35,7 @@ fun AuthPage(
     onClearError: () -> Unit,
     onBypass: () -> Unit
 ) {
+    val strings = LocalStrings.current
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -40,6 +43,7 @@ fun AuthPage(
     var lastName by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
     var gender by remember { mutableIntStateOf(0) }
+    var genderExpanded by remember { mutableStateOf(false) }
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -100,7 +104,7 @@ fun AuthPage(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Track your expenses smartly",
+                        text = strings.appTagline,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -124,14 +128,14 @@ fun AuthPage(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (isLoginMode) "Welcome Back" else "Create Account",
+                        text = if (isLoginMode) strings.welcomeBack else strings.createAccount,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (isLoginMode) "Sign in to continue" else "Fill in your details",
+                        text = if (isLoginMode) strings.signInToContinue else strings.fillInYourDetails,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -147,7 +151,7 @@ fun AuthPage(
                             OutlinedTextField(
                                 value = firstName,
                                 onValueChange = { firstName = it },
-                                label = { Text("First Name") },
+                                label = { Text(strings.firstName) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Outlined.Person,
@@ -163,7 +167,7 @@ fun AuthPage(
                             OutlinedTextField(
                                 value = lastName,
                                 onValueChange = { lastName = it },
-                                label = { Text("Last Name") },
+                                label = { Text(strings.lastName) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Outlined.Person,
@@ -179,7 +183,7 @@ fun AuthPage(
                             OutlinedTextField(
                                 value = age,
                                 onValueChange = { age = it },
-                                label = { Text("Age") },
+                                label = { Text(strings.age) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Outlined.Cake,
@@ -193,14 +197,51 @@ fun AuthPage(
                                 shape = MaterialTheme.shapes.small,
                                 colors = fieldColors
                             )
-                            Spacer(modifier = Modifier.height(0.dp))
+                            ExposedDropdownMenuBox(
+                                expanded = genderExpanded,
+                                onExpandedChange = { genderExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = strings.genderOptions[gender],
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(strings.gender) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.Person,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = fieldColors
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = genderExpanded,
+                                    onDismissRequest = { genderExpanded = false }
+                                ) {
+                                    strings.genderOptions.forEachIndexed { index, label ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                gender = index
+                                                genderExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email") },
+                        label = { Text(strings.email) },
                         leadingIcon = {
                             Icon(
                                 Icons.Outlined.Email,
@@ -219,7 +260,7 @@ fun AuthPage(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(strings.password) },
                         leadingIcon = {
                             Icon(
                                 Icons.Outlined.Lock,
@@ -285,7 +326,7 @@ fun AuthPage(
                             )
                         ) {
                             Text(
-                                text = if (isLoginMode) "Sign In" else "Create Account",
+                                text = if (isLoginMode) strings.signIn else strings.createAccount,
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -301,8 +342,8 @@ fun AuthPage(
                 isLoginMode = !isLoginMode
             }) {
                 Text(
-                    text = if (isLoginMode) "Don't have an account? Sign Up"
-                    else "Already have an account? Sign In",
+                    text = if (isLoginMode) strings.noAccountSignUp
+                    else strings.hasAccountSignIn,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -315,7 +356,7 @@ fun AuthPage(
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Text(
-                    text = "Bypass Authentication (Developer Mode)",
+                    text = strings.bypassAuth,
                     color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold

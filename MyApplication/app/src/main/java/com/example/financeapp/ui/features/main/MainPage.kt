@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.example.financeapp.data.model.*
 import com.example.financeapp.ui.features.main.components.AddExpenseDialog
 import com.example.financeapp.ui.features.main.components.FinanceCard
+import com.example.financeapp.ui.localization.AppStrings
+import com.example.financeapp.ui.localization.LocalStrings
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -41,7 +43,9 @@ fun MainPage(
     onDeleteExpense: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalStrings.current
     var editingExpense by remember { mutableStateOf<Product?>(null) }
+    var expenseToDelete by remember { mutableStateOf<Product?>(null) }
 
     val filteredExpenses = if (selectedCategory != null) {
         expenses.filter { it.category.equals(selectedCategory, ignoreCase = true) }
@@ -49,8 +53,42 @@ fun MainPage(
         expenses
     }
 
-    val grouped = groupExpenses(filteredExpenses, timeGroup)
+    val grouped = groupExpenses(filteredExpenses, timeGroup, strings)
     val totalSpent = expenses.sumOf { it.amount }
+
+    if (expenseToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { expenseToDelete = null },
+            title = {
+                Text(
+                    strings.deleteExpense,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(String.format(strings.deleteConfirmFormat, expenseToDelete!!.title))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteExpense(expenseToDelete!!.id)
+                        expenseToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(strings.delete)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { expenseToDelete = null }) {
+                    Text(strings.cancel)
+                }
+            }
+        )
+    }
 
     if (editingExpense != null) {
         AddExpenseDialog(
@@ -74,13 +112,13 @@ fun MainPage(
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
                 Text(
-                    text = "Welcome back${if (userInfo?.firstName != null) ", ${userInfo.firstName}" else ""}",
+                    text = "${strings.welcomeBackGreeting}${if (userInfo?.firstName != null) ", ${userInfo.firstName}" else ""}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Your Finances",
+                    text = strings.yourFinances,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -96,17 +134,20 @@ fun MainPage(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 FinanceCard(
-                    title = "Daily Budget",
+                    title = strings.dailyBudget,
                     value = "$${String.format("%.2f", userInfo?.dailyAllowance ?: 0.0)}",
                     icon = Icons.Outlined.AccountBalanceWallet,
-                    gradientColors = listOf(
+                    gradientColors = if ((userInfo?.dailyAllowance ?: 0.0) < 0) listOf(
+                        MaterialTheme.colorScheme.error,
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    ) else listOf(
                         MaterialTheme.colorScheme.primary,
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     ),
                     modifier = Modifier.weight(1f)
                 )
                 FinanceCard(
-                    title = "Savings",
+                    title = strings.savings,
                     value = "$${String.format("%.2f", userInfo?.savings ?: 0.0)}",
                     icon = Icons.Outlined.Savings,
                     gradientColors = listOf(
@@ -140,7 +181,7 @@ fun MainPage(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Total Spent",
+                        text = strings.totalSpent,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -167,8 +208,7 @@ fun MainPage(
                         onClick = { onTimeGroupChange(group) },
                         label = {
                             Text(
-                                group.name.lowercase()
-                                    .replaceFirstChar { it.uppercase() },
+                                strings.timeGroupDisplayName(group),
                                 style = MaterialTheme.typography.labelMedium
                             )
                         },
@@ -194,7 +234,7 @@ fun MainPage(
                         selected = selectedCategory == null,
                         onClick = { onCategoryChange(null) },
                         label = {
-                            Text("All", style = MaterialTheme.typography.labelMedium)
+                            Text(strings.all, style = MaterialTheme.typography.labelMedium)
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.secondary,
@@ -209,7 +249,10 @@ fun MainPage(
                             onCategoryChange(if (selectedCategory == category) null else category)
                         },
                         label = {
-                            Text(category, style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                strings.categoryDisplayName(category),
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.secondary,
@@ -231,7 +274,7 @@ fun MainPage(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No expenses yet",
+                        text = strings.noExpensesYet,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -252,7 +295,7 @@ fun MainPage(
                     ExpenseRow(
                         expense = expense,
                         onClick = { editingExpense = expense },
-                        onDelete = { onDeleteExpense(expense.id) }
+                        onDelete = { expenseToDelete = expense }
                     )
                 }
             }
@@ -266,6 +309,7 @@ private fun ExpenseRow(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val strings = LocalStrings.current
     val categoryIcon = getCategoryEmoji(expense.category)
     val formattedDate = try {
         val ld = LocalDate.parse(expense.date.substring(0, 10))
@@ -313,7 +357,7 @@ private fun ExpenseRow(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${expense.category} · $formattedDate",
+                    text = "${strings.categoryDisplayName(expense.category)} · $formattedDate",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -334,7 +378,7 @@ private fun ExpenseRow(
             ) {
                 Icon(
                     Icons.Outlined.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = strings.delete,
                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -360,7 +404,8 @@ private fun getCategoryEmoji(category: String): String {
 
 private fun groupExpenses(
     expenses: List<Product>,
-    timeGroup: TimeGroup
+    timeGroup: TimeGroup,
+    strings: AppStrings
 ): List<Pair<String, List<Product>>> {
     if (expenses.isEmpty()) return emptyList()
 
@@ -374,13 +419,13 @@ private fun groupExpenses(
                     TimeGroup.WEEK -> {
                         val weekFields = WeekFields.of(Locale.getDefault())
                         val week = date.get(weekFields.weekOfWeekBasedYear())
-                        "Week $week, ${date.year}"
+                        String.format(strings.weekLabelFormat, week, date.year)
                     }
                     TimeGroup.MONTH -> "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.year}"
                     TimeGroup.YEAR -> "${date.year}"
                 }
             } catch (_: Exception) {
-                "Other"
+                strings.categoryOther
             }
         }
         .toList()

@@ -9,6 +9,8 @@ object TokenManager {
     private const val PREFS_NAME = "auth_prefs"
     private const val KEY_JWT = "jwt_token"
     private const val KEY_USER_INFO = "user_info"
+    private const val KEY_LAST_BUDGET_REFRESH = "last_budget_refresh"
+    private const val KEY_LANGUAGE = "language"
 
     private lateinit var prefs: SharedPreferences
     private val gson = Gson()
@@ -20,6 +22,14 @@ object TokenManager {
     var token: String?
         get() = prefs.getString(KEY_JWT, null)
         set(value) = prefs.edit().putString(KEY_JWT, value).apply()
+
+    var lastBudgetRefreshDate: String?
+        get() = prefs.getString(KEY_LAST_BUDGET_REFRESH, null)
+        set(value) = prefs.edit().putString(KEY_LAST_BUDGET_REFRESH, value).apply()
+
+    var language: String?
+        get() = prefs.getString(KEY_LANGUAGE, null)
+        set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
 
     var userInfo: LoginResult?
         get() {

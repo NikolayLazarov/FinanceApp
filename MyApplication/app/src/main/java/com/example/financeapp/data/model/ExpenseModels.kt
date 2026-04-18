@@ -13,6 +13,19 @@ data class UpdateAllowanceRequest(
     val savings: Double
 )
 
+data class DeleteExpenseRequest(
+    val id: Int
+)
+
 data class RefreshResponse(
     val token: String
+)
+
+data class RefreshDailyBudgetRequest(
+    val lastRefreshDate: String
+)
+
+data class RefreshDailyBudgetResponse(
+    val dailyAllowance: Double,
+    val lastRefreshDate: String
 )

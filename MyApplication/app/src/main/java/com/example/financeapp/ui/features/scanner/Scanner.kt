@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.example.financeapp.data.model.CreateExpenseRequest
 import com.example.financeapp.data.model.OcrReceiptResult
 import com.example.financeapp.data.repository.FinanceRepository
+import com.example.financeapp.ui.localization.LocalStrings
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
@@ -46,6 +47,7 @@ fun Scanner(
     onSave: (List<CreateExpenseRequest>) -> Unit,
     onCancel: () -> Unit
 ) {
+    val strings = LocalStrings.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { FinanceRepository() }
@@ -54,7 +56,6 @@ fun Scanner(
     var isUploading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var ocrResult by remember { mutableStateOf<OcrReceiptResult?>(null) }
-    // Editable items derived from OCR result
     var editableItems by remember { mutableStateOf<List<EditableReceiptItem>>(emptyList()) }
 
     val options = GmsDocumentScannerOptions.Builder()
@@ -113,19 +114,18 @@ fun Scanner(
         }
     }
 
-    // Show loading while uploading/processing
     if (isUploading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Processing receipt...",
+                    strings.processingReceipt,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "OCR & LLM correction in progress",
+                    strings.ocrInProgress,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -134,7 +134,6 @@ fun Scanner(
         return
     }
 
-    // Show error
     if (errorMessage != null && ocrResult == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(
@@ -142,7 +141,7 @@ fun Scanner(
                 modifier = Modifier.padding(32.dp)
             ) {
                 Text(
-                    "Failed to process receipt",
+                    strings.failedToProcess,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
@@ -155,14 +154,13 @@ fun Scanner(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onCancel) {
-                    Text("Go Back")
+                    Text(strings.goBack)
                 }
             }
         }
         return
     }
 
-    // Show OCR review screen
     if (ocrResult != null) {
         OcrReviewScreen(
             ocrResult = ocrResult!!,
@@ -198,6 +196,7 @@ private fun OcrReviewScreen(
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Scaffold(
         topBar = {
             Row(
@@ -208,10 +207,10 @@ private fun OcrReviewScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(onClick = onCancel) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Cancel")
+                    Icon(Icons.Outlined.Close, contentDescription = strings.cancel)
                 }
                 Text(
-                    "Review Scanned Items",
+                    strings.reviewScannedItems,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -232,7 +231,7 @@ private fun OcrReviewScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            "Total (${editableItems.size} items)",
+                            "${strings.total} (${editableItems.size} ${strings.itemsCount})",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )
@@ -248,7 +247,7 @@ private fun OcrReviewScreen(
                             onClick = onCancel,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Cancel")
+                            Text(strings.cancel)
                         }
                         Button(
                             onClick = onConfirm,
@@ -257,7 +256,7 @@ private fun OcrReviewScreen(
                                 it.name.isNotBlank() && (it.price.toDoubleOrNull() ?: 0.0) > 0
                             }
                         ) {
-                            Text("Add Expenses")
+                            Text(strings.addExpensesButton)
                         }
                     }
                 }
@@ -271,7 +270,6 @@ private fun OcrReviewScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Store name header
             if (!ocrResult.storeName.isNullOrBlank()) {
                 item {
                     Card(
@@ -281,7 +279,7 @@ private fun OcrReviewScreen(
                         )
                     ) {
                         Text(
-                            text = "Store: ${ocrResult.storeName}",
+                            text = "${strings.store}: ${ocrResult.storeName}",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
@@ -293,14 +291,13 @@ private fun OcrReviewScreen(
 
             item {
                 Text(
-                    "Edit items before adding as expenses:",
+                    strings.editItemsBeforeAdding,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
 
-            // Editable item rows
             itemsIndexed(editableItems) { index, item ->
                 EditableItemRow(
                     item = item,
@@ -320,7 +317,7 @@ private fun OcrReviewScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "No items detected on receipt",
+                            strings.noItemsOnReceipt,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -340,6 +337,7 @@ private fun EditableItemRow(
     onCategoryChange: (String) -> Unit,
     onDelete: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -355,7 +353,7 @@ private fun EditableItemRow(
                 OutlinedTextField(
                     value = item.name,
                     onValueChange = onNameChange,
-                    label = { Text("Item name") },
+                    label = { Text(strings.itemName) },
                     singleLine = false,
                     minLines = 2,
                     maxLines = 4,
@@ -366,7 +364,7 @@ private fun EditableItemRow(
                 OutlinedTextField(
                     value = item.price,
                     onValueChange = onPriceChange,
-                    label = { Text("Price") },
+                    label = { Text(strings.price) },
                     prefix = { Text("$") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -381,10 +379,10 @@ private fun EditableItemRow(
                     onExpandedChange = { categoryExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = item.category,
+                        value = strings.categoryDisplayName(item.category),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Category") },
+                        label = { Text(strings.category) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
@@ -395,11 +393,11 @@ private fun EditableItemRow(
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false }
                     ) {
-                        expenseCategories.forEach { label ->
+                        strings.categoryList.forEach { (apiKey, displayName) ->
                             DropdownMenuItem(
-                                text = { Text(label) },
+                                text = { Text(displayName) },
                                 onClick = {
-                                    onCategoryChange(label)
+                                    onCategoryChange(apiKey)
                                     categoryExpanded = false
                                 }
                             )
@@ -411,7 +409,7 @@ private fun EditableItemRow(
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Outlined.Delete,
-                    contentDescription = "Remove item",
+                    contentDescription = strings.delete,
                     tint = MaterialTheme.colorScheme.error
                 )
             }

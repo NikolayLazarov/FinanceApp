@@ -26,6 +26,7 @@ import com.example.financeapp.data.model.Product
 import com.example.financeapp.data.model.TimeGroup
 import com.example.financeapp.ui.features.statistics.components.BarChart
 import com.example.financeapp.ui.features.profile.components.BezierCurve
+import com.example.financeapp.ui.localization.LocalStrings
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields
@@ -60,6 +61,7 @@ fun GraphsPage(
     onCategoryChange: (String?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalStrings.current
     var currentPivotDate by remember { mutableStateOf(LocalDate.now()) }
     val weekFields = WeekFields.of(Locale.getDefault())
 
@@ -100,7 +102,7 @@ fun GraphsPage(
                 windowExpenses.filter { it.category.equals(cat, ignoreCase = true) }
                     .sumOf { it.amount }.toFloat()
             }
-            Triple(labels, values, "Breakdown by Category")
+            Triple(labels, values, "category")
         } else {
             val (labels, values) = when (timeGroup) {
                 TimeGroup.DAY -> {
@@ -165,7 +167,7 @@ fun GraphsPage(
                     labels to values
                 }
             }
-            Triple(labels, values, "Spending over Time")
+            Triple(labels, values, "time")
         }
     }
 
@@ -204,7 +206,7 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                TrendData(v1, v2, "Current 7 Days vs Previous 7 Days", labels)
+                TrendData(v1, v2, "days", labels)
             }
             TimeGroup.WEEK -> {
                 val weeks1 = (0..3).map { currentPivotDate.minusWeeks(it.toLong()) }.reversed()
@@ -230,7 +232,7 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                TrendData(v1, v2, "Current 4 Weeks vs Previous 4 Weeks", labels)
+                TrendData(v1, v2, "weeks", labels)
             }
             TimeGroup.MONTH -> {
                 val months1 = (0..5).map { currentPivotDate.minusMonths(it.toLong()) }.reversed()
@@ -252,7 +254,7 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                TrendData(v1, v2, "Current 6 Months vs Previous 6 Months", labels)
+                TrendData(v1, v2, "months", labels)
             }
             TimeGroup.YEAR -> {
                 val years1 = (0..4).map { currentPivotDate.minusYears(it.toLong()) }.reversed()
@@ -274,7 +276,7 @@ fun GraphsPage(
                         } catch (e: Exception) { false }
                     }.sumOf { it.amount }.toFloat()
                 }
-                TrendData(v1, v2, "Current 5 Years vs Previous 5 Years", labels)
+                TrendData(v1, v2, "years", labels)
             }
         }
     }
@@ -304,13 +306,13 @@ fun GraphsPage(
         ) {
             Column {
                 Text(
-                    text = "Analytics",
+                    text = strings.analytics,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
-                    text = "Insights into your spending habits",
+                    text = strings.analyticsSubtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.8f)
                 )
@@ -351,14 +353,14 @@ fun GraphsPage(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     val timeLabel = when(timeGroup) {
-                        TimeGroup.DAY -> "for this Day"
-                        TimeGroup.WEEK -> "for this Week"
-                        TimeGroup.MONTH -> "for this Month"
-                        TimeGroup.YEAR -> "for this Year"
+                        TimeGroup.DAY -> strings.forThisDay
+                        TimeGroup.WEEK -> strings.forThisWeek
+                        TimeGroup.MONTH -> strings.forThisMonth
+                        TimeGroup.YEAR -> strings.forThisYear
                     }
-                    val categoryText = if (selectedCategory != null) " in $selectedCategory" else ""
+                    val categoryText = if (selectedCategory != null) " - ${strings.categoryDisplayName(selectedCategory)}" else ""
                     Text(
-                        text = "Total Spent $timeLabel$categoryText",
+                        text = "${strings.totalSpent} $timeLabel$categoryText",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -375,7 +377,7 @@ fun GraphsPage(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Filters",
+            text = strings.filters,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
@@ -389,13 +391,13 @@ fun GraphsPage(
             items(TimeGroup.entries.toList()) { group ->
                 FilterChip(
                     selected = group == timeGroup,
-                    onClick = { 
+                    onClick = {
                         onTimeGroupChange(group)
                         currentPivotDate = LocalDate.now()
                     },
                     label = {
                         Text(
-                            group.name.lowercase().replaceFirstChar { it.uppercase() },
+                            strings.timeGroupDisplayName(group),
                             style = MaterialTheme.typography.labelMedium
                         )
                     },
@@ -422,7 +424,7 @@ fun GraphsPage(
                     TimeGroup.YEAR -> currentPivotDate.minusYears(1)
                 }
             }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Previous")
+                Icon(Icons.Default.ChevronLeft, contentDescription = null)
             }
 
             Text(
@@ -441,7 +443,7 @@ fun GraphsPage(
                     TimeGroup.YEAR -> currentPivotDate.plusYears(1)
                 }
             }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = "Next")
+                Icon(Icons.Default.ChevronRight, contentDescription = null)
             }
         }
 
@@ -457,7 +459,7 @@ fun GraphsPage(
                     selected = selectedCategory == null,
                     onClick = { onCategoryChange(null) },
                     label = {
-                        Text("All Categories", style = MaterialTheme.typography.labelMedium)
+                        Text(strings.allCategories, style = MaterialTheme.typography.labelMedium)
                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.secondary,
@@ -473,7 +475,7 @@ fun GraphsPage(
                         onCategoryChange(if (selectedCategory == category) null else category)
                     },
                     label = {
-                        Text(category, style = MaterialTheme.typography.labelMedium)
+                        Text(strings.categoryDisplayName(category), style = MaterialTheme.typography.labelMedium)
                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = categoryColor,
@@ -487,9 +489,11 @@ fun GraphsPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        val resolvedChartSubtitle = if (chartSubtitle == "category") strings.breakdownByCategory else strings.spendingOverTime
+
         ChartCard(
-            title = "Spending Distribution",
-            subtitle = chartSubtitle,
+            title = strings.spendingDistribution,
+            subtitle = resolvedChartSubtitle,
             icon = Icons.Outlined.BarChart
         ) {
             BarChart(
@@ -506,9 +510,17 @@ fun GraphsPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val resolvedTrendSubtitle = when(trendData.key) {
+            "days" -> strings.current7DaysVsPrev
+            "weeks" -> strings.current4WeeksVsPrev
+            "months" -> strings.current6MonthsVsPrev
+            "years" -> strings.current5YearsVsPrev
+            else -> ""
+        }
+
         ChartCard(
-            title = "Spending Trends",
-            subtitle = trendData.subtitle,
+            title = strings.spendingTrends,
+            subtitle = resolvedTrendSubtitle,
             icon = Icons.Outlined.AutoGraph
         ) {
             BezierCurve(
@@ -533,7 +545,7 @@ fun GraphsPage(
 private data class TrendData(
     val p1: List<Float>,
     val p2: List<Float>,
-    val subtitle: String,
+    val key: String,
     val labels: List<String>
 )
 

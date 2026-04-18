@@ -14,7 +14,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:5062/"
+    private const val BASE_URL = "http://172.20.10.2:5062/"
 
     lateinit var apiService: MyApiService
         private set

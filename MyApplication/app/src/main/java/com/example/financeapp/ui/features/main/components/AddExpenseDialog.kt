@@ -23,6 +23,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.financeapp.data.model.CreateExpenseRequest
 import com.example.financeapp.data.model.Product
 import com.example.financeapp.data.repository.FinanceRepository
+import com.example.financeapp.ui.localization.LocalStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +54,7 @@ fun AddExpenseDialog(
     onConfirm: (CreateExpenseRequest) -> Unit,
     onConfirmMultiple: (List<CreateExpenseRequest>) -> Unit = {}
 ) {
+    val strings = LocalStrings.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { FinanceRepository() }
@@ -77,7 +79,6 @@ fun AddExpenseDialog(
     var isScanning by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
 
-    // Scanned items review state
     var scannedItems by remember { mutableStateOf<List<EditableScannedItem>?>(null) }
     var scannedStoreName by remember { mutableStateOf<String?>(null) }
 
@@ -153,10 +154,9 @@ fun AddExpenseDialog(
                 shape = MaterialTheme.shapes.large
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Header
                     Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
                         Text(
-                            "Scanned Items",
+                            strings.scannedItems,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -169,7 +169,7 @@ fun AddExpenseDialog(
                             )
                         }
                         Text(
-                            "Review and edit items before adding",
+                            strings.reviewAndEditItems,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
@@ -178,7 +178,6 @@ fun AddExpenseDialog(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
 
-                    // Scrollable items list
                     LazyColumn(
                         modifier = Modifier
                             .weight(1f)
@@ -196,7 +195,7 @@ fun AddExpenseDialog(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        "No items detected",
+                                        strings.noItemsDetected,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -227,7 +226,6 @@ fun AddExpenseDialog(
                         }
                     }
 
-                    // Bottom bar with total + buttons
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Column(modifier = Modifier.padding(24.dp)) {
                         val totalPrice = scannedItems!!.sumOf { it.price.toDoubleOrNull() ?: 0.0 }
@@ -236,10 +234,10 @@ fun AddExpenseDialog(
                             onExpandedChange = { categoryExpanded = it }
                         ) {
                             OutlinedTextField(
-                                value = expenseCategories[selectedCategoryIndex],
+                                value = strings.categoryDisplayName(expenseCategories[selectedCategoryIndex]),
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Category") },
+                                label = { Text(strings.category) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .menuAnchor(MenuAnchorType.PrimaryNotEditable),
@@ -249,9 +247,9 @@ fun AddExpenseDialog(
                                 expanded = categoryExpanded,
                                 onDismissRequest = { categoryExpanded = false }
                             ) {
-                                expenseCategories.forEachIndexed { index, label ->
+                                strings.categoryList.forEachIndexed { index, (_, displayName) ->
                                     DropdownMenuItem(
-                                        text = { Text(label) },
+                                        text = { Text(displayName) },
                                         onClick = {
                                             selectedCategoryIndex = index
                                             categoryExpanded = false
@@ -268,12 +266,12 @@ fun AddExpenseDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "${scannedItems!!.size} items",
+                                "${scannedItems!!.size} ${strings.itemsCount}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                "Total: $${String.format("%.2f", totalPrice)}",
+                                "${strings.total}: $${String.format("%.2f", totalPrice)}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -287,7 +285,7 @@ fun AddExpenseDialog(
                                 onClick = { scannedItems = null },
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Back", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(strings.back, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(
                                 onClick = {
@@ -314,7 +312,7 @@ fun AddExpenseDialog(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 )
                             ) {
-                                Text("Add All Expenses", fontWeight = FontWeight.Medium)
+                                Text(strings.addAllExpenses, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
@@ -349,18 +347,17 @@ fun AddExpenseDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = if (expenseToEdit == null) "New Expense" else "Edit Expense",
+                    text = if (expenseToEdit == null) strings.newExpense else strings.editExpense,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = if (expenseToEdit == null) "Track a new spending" else "Update your spending details",
+                    text = if (expenseToEdit == null) strings.trackNewSpending else strings.updateSpendingDetails,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Scan Receipt button (only for new expenses)
                 if (expenseToEdit == null) {
                     OutlinedButton(
                         onClick = { imagePickerLauncher.launch("image/*") },
@@ -378,7 +375,7 @@ fun AddExpenseDialog(
                                 color = MaterialTheme.colorScheme.secondary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Scanning...", fontWeight = FontWeight.Medium)
+                            Text(strings.scanning, fontWeight = FontWeight.Medium)
                         } else {
                             Icon(
                                 Icons.Outlined.DocumentScanner,
@@ -386,7 +383,7 @@ fun AddExpenseDialog(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Scan Receipt Image", fontWeight = FontWeight.Medium)
+                            Text(strings.scanReceiptImage, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -404,7 +401,7 @@ fun AddExpenseDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(strings.title) },
                     leadingIcon = {
                         Icon(
                             Icons.Outlined.Edit,
@@ -421,7 +418,7 @@ fun AddExpenseDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount") },
+                    label = { Text(strings.amount) },
                     leadingIcon = {
                         Icon(
                             Icons.Outlined.AttachMoney,
@@ -441,10 +438,10 @@ fun AddExpenseDialog(
                     onExpandedChange = { categoryExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = expenseCategories[selectedCategoryIndex],
+                        value = strings.categoryDisplayName(expenseCategories[selectedCategoryIndex]),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Category") },
+                        label = { Text(strings.category) },
                         leadingIcon = {
                             Icon(
                                 Icons.Outlined.Category,
@@ -463,9 +460,9 @@ fun AddExpenseDialog(
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false }
                     ) {
-                        expenseCategories.forEachIndexed { index, label ->
+                        strings.categoryList.forEachIndexed { index, (_, displayName) ->
                             DropdownMenuItem(
-                                text = { Text(label) },
+                                text = { Text(displayName) },
                                 onClick = {
                                     selectedCategoryIndex = index
                                     categoryExpanded = false
@@ -478,7 +475,7 @@ fun AddExpenseDialog(
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    label = { Text("Date") },
+                    label = { Text(strings.date) },
                     leadingIcon = {
                         Icon(
                             Icons.Outlined.CalendarToday,
@@ -501,7 +498,7 @@ fun AddExpenseDialog(
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text(
-                            "Cancel",
+                            strings.cancel,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -525,7 +522,7 @@ fun AddExpenseDialog(
                         )
                     ) {
                         Text(
-                            text = if (expenseToEdit == null) "Save Expense" else "Update Expense",
+                            text = if (expenseToEdit == null) strings.saveExpense else strings.updateExpenseButton,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -543,6 +540,7 @@ private fun ScannedItemRow(
     onPriceChange: (String) -> Unit,
     onDelete: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -556,7 +554,6 @@ private fun ScannedItemRow(
                 .padding(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Item number badge
             Box(
                 modifier = Modifier
                     .padding(top = 12.dp)
@@ -577,7 +574,7 @@ private fun ScannedItemRow(
                 OutlinedTextField(
                     value = item.name,
                     onValueChange = onNameChange,
-                    label = { Text("Name") },
+                    label = { Text(strings.name) },
                     singleLine = false,
                     minLines = 2,
                     maxLines = 4,
@@ -588,7 +585,7 @@ private fun ScannedItemRow(
                 OutlinedTextField(
                     value = item.price,
                     onValueChange = onPriceChange,
-                    label = { Text("Price") },
+                    label = { Text(strings.price) },
                     prefix = { Text("$") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -604,7 +601,7 @@ private fun ScannedItemRow(
             ) {
                 Icon(
                     Icons.Outlined.Delete,
-                    contentDescription = "Remove",
+                    contentDescription = strings.delete,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )

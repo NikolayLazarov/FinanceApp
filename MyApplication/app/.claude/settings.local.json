@@ -16,7 +16,26 @@
       "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
       "Bash(grep -E \"\\\\.\\(cs|kt\\)$\")",
       "Bash(.venv/Scripts/pip install:*)",
-      "Bash(curl -s http://localhost:11434/api/tags)"
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(pandoc \"C:\\\\Users\\\\vikto\\\\source\\\\repos\\\\ToDo-App\\\\ToDo-App-Dokumentaciq.docx\" -o /tmp/todo-doc.md)",
+      "Bash(python scripts/office/unpack.py \"C:\\\\Users\\\\vikto\\\\source\\\\repos\\\\ToDo-App\\\\ToDo-App-Dokumentaciq.docx\" /tmp/todo-unpacked/)",
+      "Bash(where python3:*)",
+      "Bash(where python:*)",
+      "Bash(where py:*)",
+      "Bash(python3 scripts/office/unpack.py \"C:/Users/vikto/source/repos/ToDo-App/ToDo-App-Dokumentaciq.docx\" /tmp/todo-unpacked/)",
+      "Read(//c/Users/vikto/AppData/Local/Programs/Python/**)",
+      "Bash(ls \"C:/Python\"*)",
+      "Bash(py scripts/office/unpack.py \"C:/Users/vikto/source/repos/ToDo-App/ToDo-App-Dokumentaciq.docx\" /tmp/todo-unpacked/)",
+      "Bash(SCRIPTS_DIR=\"C:/Users/vikto/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/c4f2a8a2-cb36-41fc-a680-6fbaeb27ed80/5c1b511c-1579-44ea-847b-4085c113c5e2/skills/docx/scripts/office\")",
+      "Bash(py \"$SCRIPTS_DIR/unpack.py\" \"C:/Users/vikto/source/repos/ToDo-App/ToDo-App-Dokumentaciq.docx\" /tmp/todo-unpacked/)",
+      "Bash(py -m pip install defusedxml)",
+      "Bash(ls \"C:/Users/vikto/source/repos/ToDo-App/\"*.docx)",
+      "Bash(py \"$SCRIPTS_DIR/unpack.py\" /tmp/todo-doc.docx /tmp/todo-unpacked/)",
+      "Bash(npm list:*)",
+      "Bash(node /tmp/generate-doc.js)",
+      "Bash(node \"C:/Users/vikto/AppData/Local/Temp/generate-doc.js\")",
+      "Bash(npm root:*)",
+      "Bash(ipconfig)"
     ]
   }
 }

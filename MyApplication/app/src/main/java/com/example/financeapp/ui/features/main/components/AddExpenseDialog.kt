@@ -494,15 +494,17 @@ fun AddExpenseDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
                             strings.cancel,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
                             onConfirm(
@@ -516,6 +518,7 @@ fun AddExpenseDialog(
                             )
                         },
                         enabled = isSaveEnabled,
+                        modifier = Modifier.weight(2f),
                         shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -523,7 +526,8 @@ fun AddExpenseDialog(
                     ) {
                         Text(
                             text = if (expenseToEdit == null) strings.saveExpense else strings.updateExpenseButton,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1
                         )
                     }
                 }

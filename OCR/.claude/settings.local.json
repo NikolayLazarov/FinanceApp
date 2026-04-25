@@ -6,7 +6,9 @@
       "Bash(py --version)",
       "Bash(py -m pip install --only-binary :all: numpy Pillow opencv-python)",
       "Bash(py -m pip install fastapi uvicorn python-multipart pytesseract)",
-      "Bash(py -c \"import fastapi, uvicorn, cv2, numpy, pytesseract; from PIL import Image; print\\(''All imports OK''\\)\")"
+      "Bash(py -c \"import fastapi, uvicorn, cv2, numpy, pytesseract; from PIL import Image; print\\(''All imports OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('ocr_service.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
+      "Bash(.venv/Scripts/python.exe -c \"import ast; ast.parse\\(open\\('ocr_service.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")"
     ]
   }
 }

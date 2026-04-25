@@ -18,6 +18,8 @@ from PIL import Image
 BASE_DIR = Path(__file__).resolve().parent
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
+DEBUG_IMAGES_DIR = BASE_DIR / "debug_images"
+DEBUG_IMAGES_DIR.mkdir(exist_ok=True)
 
 logger = logging.getLogger("ocr_service")
 if not logger.handlers:
@@ -40,15 +42,109 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
+
     logger.propagate = False
 
 TESSERACT_CMD = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
 OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "45"))
-OCR_MIN_DIMENSION = int(os.getenv("OCR_MIN_DIMENSION", "1800"))
-OCR_MAX_DIMENSION = int(os.getenv("OCR_MAX_DIMENSION", "2400"))
+OCR_MIN_DIMENSION = int(os.getenv("OCR_MIN_DIMENSION", "2400"))
+OCR_MAX_DIMENSION = int(os.getenv("OCR_MAX_DIMENSION", "3200"))
 LLM_MAX_INPUT_CHARS = int(os.getenv("LLM_MAX_INPUT_CHARS", "3000"))
+OCR_LANG = os.getenv("OCR_LANG", "bul+eng")
+OCR_PSM_MODES = tuple(
+    int(mode.strip())
+    for mode in os.getenv("OCR_PSM_MODES", "4,6,11").split(",")
+    if mode.strip().isdigit()
+) or (4, 6, 11)
+OCR_MIN_CONFIDENCE = int(os.getenv("OCR_MIN_CONFIDENCE", "20"))
+OCR_USE_LLM = os.getenv("OCR_USE_LLM", "true").lower() == "true"
+OCR_LLM_MIN_SCORE = int(os.getenv("OCR_LLM_MIN_SCORE", "4"))
+OCR_NOISE_RATIO_THRESHOLD = float(os.getenv("OCR_NOISE_RATIO_THRESHOLD", "0.12"))
+
+ITEM_PRICE_PATTERN = re.compile(
+    r"(?P<price>(?:\d+[.,]\d{2,3}|[.,]\d{2,3}))\s*(?:[A-Za-z\u0410-\u044f0-9]{0,4}\.?)?\s*$",
+    re.IGNORECASE,
+)
+DATE_TIME_PATTERN = re.compile(r"\d{2}:\d{2}(?::\d{2})?|\d{2}[-/.]\d{2}[-/.]\d{2,4}")
+LEVA_TOTAL_PATTERN = re.compile(r"(лева|лв\.?|bgn|leva)", re.IGNORECASE)
+EURO_TOTAL_PATTERN = re.compile(r"(евро|eur|euro|ebpo)", re.IGNORECASE)
+NOISY_SYMBOL_PATTERN = re.compile(r"[|¦`~<>\\]")
+SUMMARY_REGEX = re.compile(
+    r"(обща\s+сума|междинна\s+сума|сума\s+евро|сума\s+в\s+лв|total|subtotal|дължима|ресто|обменен\s+курс|eur|euro|bgn)",
+    re.IGNORECASE,
+)
+NON_ITEM_REGEX = re.compile(
+    r"(еик|зддс|ддс|унп|каса|\bбон\b|\bнул\b|ид\.?\s*но|артикул|фискал|фантастико|reserved|оператор|касиер"
+    r"|обменен\s*курс|обм\.?\s*курс|кредитна|дебитна|mastercard|contactless|борика|уникред"
+    r"|покупка|подпис|благодар|запазет|разписк|справк|rrn#|ед\.?\s*цена)",
+    re.IGNORECASE,
+)
+
+SUMMARY_MARKERS = (
+    "CYMA",
+    "SUMA",
+    "MEJDIN",
+    "MEXDIN",
+    "OBWA",
+    "OBSHT",
+    "TOTAL",
+    "SUBTOTAL",
+    "DYLJIMA",
+    "EBPO",
+    "EURO",
+    "LEBA",
+    "LEVA",
+    "KYPC",
+    "KURS",
+    "PECTO",
+    "RESTO",
+    "BPOJ",
+    "BPOY",
+    "BROY",
+    "KARTA",
+    "KREDIT",
+    "DEBIT",
+    "POKYPK",
+    "POKUPK",
+    "BLAGOD",
+    "BGN",
+)
+
+NON_ITEM_MARKERS = (
+    "EIK",
+    "ZDDS",
+    "DDS",
+    "YNP",
+    "KACA",
+    "IDNO",
+    "ARTIKYL",
+    "FISKAL",
+    "FANTASTIKO",
+    "RESERVED",
+    "OPERATOR",
+    "KASIER",
+    "OBMENEN",
+    "OBM.KYPC",
+    "OBMKYPC",
+    "KREDITNA",
+    "DEBITNA",
+    "MASTERCARD",
+    "CONTACTLESS",
+    "BORIKA",
+    "YNIKREDIT",
+    "POKUPKA",
+    "PODPIS",
+    "BLAGODAR",
+    "ZAPAZET",
+    "RAZPISK",
+    "SPRABK",
+    "RRN",
+    "MCCONTACTLESS",
+    "ED.CENA",
+    "EDCENA",
+)
 
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
@@ -117,7 +213,7 @@ def grayscale(image):
 
 def noise_removal(image):
     image = cv2.medianBlur(image, 3)
-    kernel = np.ones((1, 1), np.uint8)
+    kernel = np.ones((2, 2), np.uint8)
     image = cv2.dilate(image, kernel, iterations=1)
     image = cv2.erode(image, kernel, iterations=1)
     image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
@@ -129,7 +225,7 @@ def threshold_image(gray_image):
         gray_image, 255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY,
-        31, 10
+        31, 7
     )
 
 
@@ -220,6 +316,89 @@ def normalize_match_text(text: str) -> str:
     return re.sub(r"[^A-Z0-9.,:/ -]", "", normalized)
 
 
+def contains_marker(text: str, markers: tuple[str, ...]) -> bool:
+    normalized = normalize_match_text(text)
+    compact = normalized.replace(" ", "")
+    return any(marker in normalized or marker.replace(" ", "") in compact for marker in markers)
+
+
+def split_non_empty_lines(raw_text: str) -> list[str]:
+    return [line.strip() for line in raw_text.splitlines() if line.strip()]
+
+
+def extract_price(text: str) -> tuple[float, int] | None:
+    match = ITEM_PRICE_PATTERN.search(text)
+    if not match:
+        return None
+
+    raw_price = match.group("price")
+    if raw_price.startswith((".", ",")):
+        raw_price = f"0{raw_price}"
+
+    separator = "." if "." in raw_price else ","
+    integer_part, decimal_part = raw_price.split(separator, 1)
+    if len(decimal_part) > 2:
+        decimal_part = decimal_part[:2]
+    raw_price = f"{integer_part}.{decimal_part}"
+
+    try:
+        price = float(raw_price.replace(",", "."))
+    except ValueError:
+        return None
+
+    return price, match.start()
+
+
+def is_summary_line(text: str) -> bool:
+    return SUMMARY_REGEX.search(text) is not None or contains_marker(text, SUMMARY_MARKERS)
+
+
+def is_non_item_line(text: str) -> bool:
+    normalized = normalize_match_text(text)
+    if not normalized:
+        return True
+    if text.startswith("#"):
+        return True
+    if DATE_TIME_PATTERN.search(text):
+        return True
+    if re.fullmatch(r"[\W\d_]+", text):
+        return True
+    if NON_ITEM_REGEX.search(text):
+        return True
+    if contains_marker(text, NON_ITEM_MARKERS):
+        return True
+    return normalized.count("*") >= 3 or normalized.count("-") >= 5 or normalized.count("=") >= 3
+
+
+def looks_like_item_line(text: str) -> bool:
+    if is_summary_line(text) or is_non_item_line(text):
+        return False
+    if not extract_price(text):
+        return False
+    return any(char.isalpha() for char in text)
+
+
+def clean_item_name(name: str) -> str:
+    cleaned = name.replace("¦", " ").replace("|", " ")
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = re.sub(r"^\d+\s*[xX×*]\s*", "", cleaned).strip()
+    cleaned = cleaned.strip(" -*#\"'`.,;:[](){}<>«»")
+    return cleaned
+
+
+def detect_store_name(lines: list[str]) -> str | None:
+    for line in lines[:12]:
+        if extract_price(line):
+            continue
+        if re.search(r"(фантастико|reserved)", line, re.IGNORECASE):
+            return line
+        if is_summary_line(line) or is_non_item_line(line):
+            continue
+        if sum(char.isalpha() for char in line) >= 4:
+            return line
+    return None
+
+
 def find_receipt_region(image: np.ndarray) -> np.ndarray:
     gray_image = grayscale(image)
     blurred = cv2.GaussianBlur(gray_image, (5, 5), 0)
@@ -243,20 +422,36 @@ def find_receipt_region(image: np.ndarray) -> np.ndarray:
     return image
 
 
-def build_ocr_lines(image: np.ndarray) -> list[dict]:
-    config = (
+def build_tesseract_config(psm: int) -> str:
+    return (
         "--oem 3 "
-        "--psm 6 "
-        "-l bul+eng "
+        f"--psm {psm} "
+        f"-l {OCR_LANG} "
+        "--dpi 300 "
         "-c preserve_interword_spaces=1"
     )
 
-    data = pytesseract.image_to_data(image, config=config, output_type=pytesseract.Output.DICT)
+
+def build_ocr_lines(image: np.ndarray, psm: int = 6) -> list[dict]:
+    data = pytesseract.image_to_data(
+        image,
+        config=build_tesseract_config(psm),
+        output_type=pytesseract.Output.DICT,
+    )
     lines_by_key = {}
 
     for index, word in enumerate(data["text"]):
         word = word.strip()
         if not word:
+            continue
+
+        confidence_raw = data["conf"][index]
+        try:
+            confidence = float(confidence_raw)
+        except (TypeError, ValueError):
+            confidence = -1.0
+
+        if confidence < OCR_MIN_CONFIDENCE and not re.search(r"\d", word):
             continue
 
         key = (data["block_num"][index], data["par_num"][index], data["line_num"][index])
@@ -266,6 +461,7 @@ def build_ocr_lines(image: np.ndarray) -> list[dict]:
             "top": 10**9,
             "right": 0,
             "bottom": 0,
+            "confidences": [],
         })
 
         left = data["left"][index]
@@ -273,7 +469,8 @@ def build_ocr_lines(image: np.ndarray) -> list[dict]:
         width = data["width"][index]
         height = data["height"][index]
 
-        line["words"].append(word)
+        line["words"].append((left, word))
+        line["confidences"].append(confidence)
         line["left"] = min(line["left"], left)
         line["top"] = min(line["top"], top)
         line["right"] = max(line["right"], left + width)
@@ -281,48 +478,30 @@ def build_ocr_lines(image: np.ndarray) -> list[dict]:
 
     lines = []
     for line in lines_by_key.values():
-        line["text"] = " ".join(line["words"])
+        ordered_words = [word for _, word in sorted(line["words"], key=lambda item: item[0])]
+        line["text"] = " ".join(ordered_words)
+        line["confidence"] = sum(line["confidences"]) / max(len(line["confidences"]), 1)
         lines.append(line)
 
-    return sorted(lines, key=lambda current: current["top"])
-
-
-def is_summary_line(text: str) -> bool:
-    normalized = normalize_match_text(text)
-    summary_markers = (
-        "CYMA",
-        "SUMA",
-        "MEJDIN",
-        "MEXDIN",
-        "OBWA",
-        "OBSHT",
-        "EBPO",
-        "EURO",
-        "LEBA",
-        "LEVA",
-        "KYPC",
-        "KURS",
-        "PECTO",
-        "RESTO",
-        "BPOJ",
-        "BPOY",
-        "BROY",
-    )
-    return any(marker in normalized for marker in summary_markers)
+    return sorted(lines, key=lambda current: (current["top"], current["left"]))
 
 
 def find_items_region(receipt_image: np.ndarray) -> np.ndarray:
     height, width = receipt_image.shape[:2]
-    ocr_lines = build_ocr_lines(grayscale(receipt_image))
-    price_pattern = re.compile(r"\d+[.,]\d{2}\s*[A-Za-z\u0410-\u044f]?$")
+    ocr_lines = build_ocr_lines(grayscale(receipt_image), psm=6)
     candidates = []
+    first_summary_top = None
 
     for line in ocr_lines:
         text = line["text"].strip()
-        has_price = bool(price_pattern.search(text))
+        if first_summary_top is None and is_summary_line(text):
+            first_summary_top = line["top"]
+        if is_non_item_line(text) and not is_summary_line(text):
+            continue
+        has_price = extract_price(text) is not None
         has_alpha = any(char.isalpha() for char in text)
-        starts_too_high = line["top"] < height * 0.18
-        reaches_price_column = line["right"] > width * 0.72
+        starts_too_high = line["top"] < height * 0.12
+        reaches_price_column = line["right"] > width * 0.60
 
         if has_price and has_alpha and reaches_price_column and not starts_too_high:
             candidates.append(line)
@@ -331,10 +510,10 @@ def find_items_region(receipt_image: np.ndarray) -> np.ndarray:
         return receipt_image
 
     filtered_candidates = []
-    first_summary_top = None
     for line in candidates:
         if is_summary_line(line["text"]):
-            first_summary_top = line["top"]
+            if first_summary_top is None:
+                first_summary_top = line["top"]
             break
         filtered_candidates.append(line)
 
@@ -354,27 +533,131 @@ def find_items_region(receipt_image: np.ndarray) -> np.ndarray:
     return receipt_image[top:bottom, left:right]
 
 
-def preprocess_image(img: np.ndarray) -> np.ndarray:
+def preprocess_gray_image(img: np.ndarray) -> np.ndarray:
     img = resize_for_ocr(img)
     deskewed = deskew(img)
     gray_image = grayscale(deskewed)
-    gray_image = sharpen_image(gray_image)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    gray_image = clahe.apply(gray_image)
+    gray_image = cv2.bilateralFilter(gray_image, 9, 75, 75)
+    return sharpen_image(gray_image)
+
+
+def preprocess_image(img: np.ndarray) -> np.ndarray:
+    gray_image = preprocess_gray_image(img)
     bw_image = threshold_image(gray_image)
-    no_noise = noise_removal(bw_image)
-    return no_noise
+    return noise_removal(bw_image)
+
+
+def is_clean_image(gray: np.ndarray) -> bool:
+    """Return True when the image is a high-contrast scan/screenshot rather than a photo.
+
+    Clean documents have a strongly bimodal histogram: almost all pixels are
+    either near-black (text) or near-white (paper background).  A threshold of
+    0.80 means ≥80 % of pixels fall in the darkest or brightest quartile.
+    """
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
+    total = float(hist.sum())
+    if total == 0:
+        return False
+    dark_ratio = hist[:64].sum() / total
+    bright_ratio = hist[192:].sum() / total
+    return (dark_ratio + bright_ratio) > 0.80
+
+
+def build_ocr_variants(img: np.ndarray) -> dict[str, np.ndarray]:
+    raw_gray = grayscale(img) if len(img.shape) == 3 else img.copy()
+
+    if is_clean_image(raw_gray):
+        # Lightweight path for scans / screenshots: avoid bilateral blur and CLAHE
+        # which smear already-sharp text and introduce ringing artifacts.
+        resized = resize_for_ocr(img)
+        gray = grayscale(resized) if len(resized.shape) == 3 else resized
+        _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return {
+            "gray": gray,
+            "adaptive": otsu,
+            "otsu": otsu,
+        }
+
+    gray_image = preprocess_gray_image(img)
+    adaptive = noise_removal(threshold_image(gray_image))
+    _, otsu = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    otsu = noise_removal(otsu)
+    return {
+        "gray": gray_image,
+        "adaptive": adaptive,
+        "otsu": otsu,
+    }
 
 
 # --- Tesseract OCR for Bulgarian receipts ---
 
-def ocr_image(pil_image: Image.Image) -> str:
-    """Run Tesseract with Bulgarian + English config optimized for receipt items."""
-    custom_config = (
-        "--oem 3 "          # LSTM neural net engine
-        "--psm 6 "          # Assume uniform block of text
-        "-l bul+eng "       # Bulgarian primary, English fallback (numbers/brands)
-        "-c preserve_interword_spaces=1"
-    )
-    return pytesseract.image_to_string(pil_image, config=custom_config)
+def score_ocr_lines(lines: list[dict]) -> int:
+    score = 0
+    item_lines = 0
+
+    for line in lines:
+        text = line["text"].strip()
+        if not text:
+            continue
+        if looks_like_item_line(text):
+            item_lines += 1
+            score += 6
+        elif is_summary_line(text):
+            score += 1
+        elif extract_price(text):
+            score += 1
+        elif is_non_item_line(text):
+            score -= 1
+
+        if NOISY_SYMBOL_PATTERN.search(text):
+            score -= 1
+
+    return score + min(item_lines, 6) * 2
+
+
+def serialize_ocr_lines(lines: list[dict]) -> str:
+    return "\n".join(line["text"].strip() for line in lines if line["text"].strip())
+
+
+def ocr_image(image_variants: dict[str, np.ndarray], request_id: str | None = None) -> tuple[str, int, str]:
+    best_text = ""
+    best_score = -10**9
+    best_source = ""
+
+    for variant_name, image in image_variants.items():
+        for psm in OCR_PSM_MODES:
+            lines = build_ocr_lines(image, psm=psm)
+            text = serialize_ocr_lines(lines)
+            score = score_ocr_lines(lines)
+            source = f"{variant_name}/psm{psm}"
+
+            if request_id:
+                logger.info(
+                    "[%s] OCR candidate | source=%s | score=%s | lines=%s | chars=%s",
+                    request_id,
+                    source,
+                    score,
+                    len(lines),
+                    len(text),
+                )
+
+            if score > best_score or (score == best_score and len(text) > len(best_text)):
+                best_text = text
+                best_score = score
+                best_source = source
+
+    if best_text:
+        return best_text, best_score, best_source
+
+    fallback_variant = image_variants.get("adaptive") or next(iter(image_variants.values()))
+    fallback_psm = OCR_PSM_MODES[0]
+    fallback_text = pytesseract.image_to_string(
+        Image.fromarray(fallback_variant),
+        config=build_tesseract_config(fallback_psm),
+    ).strip()
+    return fallback_text, 0, f"fallback/psm{fallback_psm}"
 
 
 # --- LLM Correction via Ollama ---
@@ -396,14 +679,19 @@ async def correct_text_with_llm(raw_text: str) -> str:
 
     prompt = (
         "You are an OCR post-processor for Bulgarian store receipts.\n\n"
-        "Below is OCR-extracted text from a Bulgarian receipt photo. It contains item names and prices. "
+        "Below is OCR-extracted text from a Bulgarian receipt photo. It may contain item names, "
+        "prices, and possibly some header/footer or payment terminal lines.\n"
         "The text may have OCR errors in the Cyrillic characters.\n\n"
         "Rules:\n"
         "- Fix misspelled Bulgarian/Cyrillic words (e.g. wrong letters, merged/split words)\n"
         "- DO NOT change any numbers, prices, or decimal values\n"
-        "- DO NOT change Latin characters (brand names like OREO, MARETTI, etc.)\n"
+        "- DO NOT change Latin characters (brand names like OREO, MARETTI, 7 DAYS, KRAMBALS, RESERVED, etc.)\n"
         "- Keep each line exactly as a separate line\n"
-        "- Output ONLY the corrected text, no explanations\n\n"
+        "- Remove lines starting with '#' (payment terminal / bank card terminal lines)\n"
+        "- Remove lines that are clearly not product items: УНП codes, ЗДДС, КАСА, БОН, "
+        "timestamps, bank card info (MASTERCARD, БОРИКА, УНИКРЕДИТ, КАРТА NO), "
+        "exchange rate lines (ОБМЕНЕН КУРС), thank-you messages (БЛАГОДАРИМ, МОЛЯ ЗАПАЗЕТЕ)\n"
+        "- Output ONLY the corrected product item lines with their prices, no explanations\n\n"
         f"OCR Text:\n{normalized_text}"
     )
 
@@ -447,67 +735,39 @@ async def correct_text_with_llm(raw_text: str) -> str:
 # --- Receipt Parsing ---
 
 def parse_receipt_text(raw_text: str) -> dict:
-    lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
+    lines = split_non_empty_lines(raw_text)
 
     items = []
     total_leva = None
     total_euro = None
-    store_name = None
-    price_pattern = re.compile(r"(\d+[.,]\d{2})\s*[A-Za-z\u0410-\u044f]?\s*$", re.IGNORECASE)
+    store_name = detect_store_name(lines)
 
     for line in lines:
-        if line and not re.match(r"^[\d\W]+$", line) and not price_pattern.search(line):
-            store_name = line
-            break
-
-    # Price at end of line, optionally followed by Bulgarian VAT code letter
-    price_pattern = re.compile(r"(\d+[.,]\d{2})\s*[АБВГABCDабвгabcd]?\s*$", re.IGNORECASE)
-
-    leva_total_pattern = re.compile(r"(лева|лв\.?|bgn)", re.IGNORECASE)
-    euro_total_pattern = re.compile(r"(евро|eur|euro)", re.IGNORECASE)
-    total_line_pattern = re.compile(
-        r"(total|suma|subtotal|общо|тотал|всичко|обща\s+сума|дължима|межди)",
-        re.IGNORECASE
-    )
-    skip_pattern = re.compile(
-        r"(еик|ддс|зддс|унп|каса|бон|нул|ид\.?\s*но|артикул|благ|фискал"
-        r"|fantastico|фантастико|курс|брой|рест|дата|час|касиер|оператор"
-        r"|\*{3,}|-{3,}|={3,}|\d{4}-\d{2}-\d{2}|\d{2}:\d{2}:\d{2})",
-        re.IGNORECASE
-    )
-    price_pattern = re.compile(r"(\d+[.,]\d{2})\s*(?:[A-Za-z\u0410-\u044f]{0,3}\.?)?\s*$", re.IGNORECASE)
-    leva_total_pattern = re.compile(r"(\u043b\u0435\u0432\u0430|\u043b\u0432\.?|bgn|leva)", re.IGNORECASE)
-    euro_total_pattern = re.compile(r"(\u0435\u0432\u0440\u043e|eur|euro|ebpo)", re.IGNORECASE)
-
-    for line in lines:
-        if skip_pattern.search(line):
-            continue
-
-        is_total_line = bool(total_line_pattern.search(line) or is_summary_line(line))
-
-        if is_total_line:
-            match = price_pattern.search(line)
-            if match:
-                value = float(match.group(1).replace(",", "."))
-                if leva_total_pattern.search(line):
+        if is_summary_line(line):
+            price_info = extract_price(line)
+            if price_info:
+                value, _ = price_info
+                if LEVA_TOTAL_PATTERN.search(line):
                     if total_leva is None:
                         total_leva = value
-                elif euro_total_pattern.search(line):
+                elif EURO_TOTAL_PATTERN.search(line):
                     if total_euro is None:
                         total_euro = value
-                else:
-                    if total_leva is None:
-                        total_leva = value
+                elif total_leva is None:
+                    total_leva = value
             continue
 
-        match = price_pattern.search(line)
-        if match:
-            price = float(match.group(1).replace(",", "."))
-            name = line[:match.start()].strip()
-            name = re.sub(r"^\d+\s*[xX×*]\s*", "", name).strip()
-            name = name.lstrip("*").strip()
-            if name and price > 0:
-                items.append({"name": name, "price": price})
+        if is_non_item_line(line):
+            continue
+
+        price_info = extract_price(line)
+        if not price_info:
+            continue
+
+        price, name_end = price_info
+        name = clean_item_name(line[:name_end])
+        if name and price > 0:
+            items.append({"name": name, "price": price})
 
     total = total_leva if total_leva is not None else total_euro
 
@@ -520,33 +780,19 @@ def parse_receipt_text(raw_text: str) -> dict:
 
 
 def parse_items_only_text(raw_text: str) -> dict:
-    lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
+    lines = split_non_empty_lines(raw_text)
     items = []
-    price_pattern = re.compile(
-        r"(?P<price>(?:\d+[.,]\d{2}|[.,]\d{2}))\s*(?:[A-Za-z\u0410-\u044f]{0,3}\.?)?\s*$",
-        re.IGNORECASE,
-    )
 
     for line in lines:
-        if is_summary_line(line):
+        if not looks_like_item_line(line):
             continue
 
-        match = price_pattern.search(line)
-        if not match:
+        price_info = extract_price(line)
+        if not price_info:
             continue
 
-        raw_price = match.group("price")
-        if raw_price.startswith((".", ",")):
-            raw_price = f"0{raw_price}"
-
-        try:
-            price = float(raw_price.replace(",", "."))
-        except ValueError:
-            continue
-
-        name = line[:match.start()].strip(" -*#\u00ab\u00bb")
-        name = re.sub(r"^\d+\s*[xX*]\s*", "", name).strip()
-
+        price, name_end = price_info
+        name = clean_item_name(line[:name_end])
         if name and price > 0:
             items.append({"name": name, "price": price})
 
@@ -556,6 +802,30 @@ def parse_items_only_text(raw_text: str) -> dict:
         "total": None,
         "item_count": len(items),
     }
+
+
+def estimate_noise_ratio(text: str) -> float:
+    stripped = text.strip()
+    if not stripped:
+        return 1.0
+    noisy_chars = sum(1 for char in stripped if NOISY_SYMBOL_PATTERN.search(char))
+    return noisy_chars / len(stripped)
+
+
+def should_run_llm(raw_text: str, parsed: dict, ocr_score: int) -> bool:
+    if not OCR_USE_LLM or not raw_text.strip():
+        return False
+    if parsed["item_count"] > 0 and ocr_score >= OCR_LLM_MIN_SCORE:
+        return estimate_noise_ratio(raw_text) >= OCR_NOISE_RATIO_THRESHOLD
+    return True
+
+
+# --- Debug image saving ---
+
+def save_debug_image(image: np.ndarray, name: str) -> None:
+    """Save *image* to debug_images/<name>.png, replacing any previous version."""
+    path = DEBUG_IMAGES_DIR / f"{name}.png"
+    cv2.imwrite(str(path), image)
 
 
 # --- API Endpoint ---
@@ -588,6 +858,7 @@ async def process_receipt(request: Request, file: UploadFile = File(...)):
     receipt_region_started_at = time.perf_counter()
     receipt_region = find_receipt_region(img)
     receipt_height, receipt_width = receipt_region.shape[:2]
+    save_debug_image(receipt_region, "last_receipt_region")
     log_stage(
         request_id,
         "crop-receipt",
@@ -598,6 +869,7 @@ async def process_receipt(request: Request, file: UploadFile = File(...)):
     items_region_started_at = time.perf_counter()
     items_region = find_items_region(receipt_region)
     items_height, items_width = items_region.shape[:2]
+    save_debug_image(items_region, "last_items_region")
     log_stage(
         request_id,
         "crop-items",
@@ -606,34 +878,90 @@ async def process_receipt(request: Request, file: UploadFile = File(...)):
     )
 
     preprocess_started_at = time.perf_counter()
-    processed = preprocess_image(items_region)
+    item_variants = build_ocr_variants(items_region)
+    for variant_name, variant_img in item_variants.items():
+        save_debug_image(variant_img, f"last_preprocessed_{variant_name}")
+    processed = item_variants["adaptive"]
     processed_height, processed_width = processed.shape[:2]
     log_stage(
         request_id,
         "preprocess-image",
         preprocess_started_at,
-        f"output={processed_width}x{processed_height}",
+        f"output={processed_width}x{processed_height}; variants={','.join(item_variants.keys())}",
     )
 
     ocr_started_at = time.perf_counter()
-    pil_image = Image.fromarray(processed)
-    raw_text = ocr_image(pil_image)
-    log_stage(request_id, "tesseract-ocr", ocr_started_at, f"chars={len(raw_text)}")
+    raw_text, raw_score, raw_source = ocr_image(item_variants, request_id=request_id)
+    log_stage(request_id, "tesseract-ocr", ocr_started_at, f"chars={len(raw_text)}; score={raw_score}; source={raw_source}")
     logger.info("[%s] OCR raw text preview: %s", request_id, raw_text[:300].replace("\n", " | "))
 
-    llm_started_at = time.perf_counter()
-    corrected_text = await correct_text_with_llm(raw_text)
-    log_stage(request_id, "llm-correction", llm_started_at, f"chars={len(corrected_text)}")
+    parse_started_at = time.perf_counter()
+    parsed_raw = parse_items_only_text(raw_text)
+    corrected_text = raw_text
+    parsed = parsed_raw
+
+    if should_run_llm(raw_text, parsed_raw, raw_score):
+        llm_started_at = time.perf_counter()
+        llm_text = await correct_text_with_llm(raw_text)
+        parsed_llm = parse_items_only_text(llm_text)
+        if parsed_llm["item_count"] >= parsed_raw["item_count"]:
+            corrected_text = llm_text
+            parsed = parsed_llm
+        else:
+            logger.info(
+                "[%s] Keeping raw OCR result because LLM reduced item count from %s to %s",
+                request_id,
+                parsed_raw["item_count"],
+                parsed_llm["item_count"],
+            )
+        log_stage(request_id, "llm-correction", llm_started_at, f"chars={len(corrected_text)}")
+    else:
+        logger.info("[%s] Skipping LLM correction because OCR score=%s with %s parsed items", request_id, raw_score, parsed_raw["item_count"])
+
     logger.info("[%s] OCR corrected text preview: %s", request_id, corrected_text[:300].replace("\n", " | "))
 
-    parse_started_at = time.perf_counter()
-    parsed = parse_items_only_text(corrected_text)
     log_stage(
         request_id,
         "parse-receipt",
         parse_started_at,
         f"items={len(parsed['items'])}; total={parsed['total']}",
     )
+
+    # Fallback: if items-region crop yielded no items, re-run OCR on the full receipt
+    if not parsed["items"]:
+        logger.info("[%s] Items-region crop yielded 0 items, falling back to full receipt OCR", request_id)
+        fallback_started_at = time.perf_counter()
+        full_variants = build_ocr_variants(receipt_region)
+        for variant_name, variant_img in full_variants.items():
+            save_debug_image(variant_img, f"last_preprocessed_{variant_name}")
+        full_raw_text, full_score, full_source = ocr_image(full_variants, request_id=request_id)
+        full_parsed_raw = parse_receipt_text(full_raw_text)
+        full_corrected = full_raw_text
+        parsed = full_parsed_raw
+
+        if should_run_llm(full_raw_text, full_parsed_raw, full_score):
+            llm_full_text = await correct_text_with_llm(full_raw_text)
+            parsed_llm = parse_receipt_text(llm_full_text)
+            if parsed_llm["item_count"] >= full_parsed_raw["item_count"]:
+                full_corrected = llm_full_text
+                parsed = parsed_llm
+            else:
+                logger.info(
+                    "[%s] Keeping raw full-receipt OCR because LLM reduced item count from %s to %s",
+                    request_id,
+                    full_parsed_raw["item_count"],
+                    parsed_llm["item_count"],
+                )
+
+        raw_text = full_raw_text
+        corrected_text = full_corrected
+        log_stage(
+            request_id,
+            "fallback-full-receipt",
+            fallback_started_at,
+            f"items={len(parsed['items'])}; total={parsed['total']}; score={full_score}; source={full_source}",
+        )
+
     parsed["raw_text"] = raw_text
     parsed["corrected_text"] = corrected_text
 
